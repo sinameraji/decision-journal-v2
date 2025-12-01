@@ -193,14 +193,13 @@ export function ChatPage() {
   const downloadingCount = downloadingModels.size
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      {/* Chat History Sidebar */}
-      <div className="w-64 flex-shrink-0">
+    <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="flex gap-6">
+        {/* Chat History Sidebar */}
         <ChatHistorySidebar />
-      </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col max-w-5xl mx-auto px-6 py-8 w-full">
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -353,6 +352,7 @@ export function ChatPage() {
               </p>
             )}
           </div>
+        </div>
         </div>
       </div>
 

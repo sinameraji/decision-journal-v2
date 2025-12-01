@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useStore } from '@/store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart3, TrendingUp, Clock, Target, Tag, Smile, AlertTriangle } from 'lucide-react'
@@ -6,10 +6,13 @@ import { generateAnalytics } from '@/services/analytics/analytics-service'
 import type { AnalyticsData } from '@/types/analytics'
 
 export function AnalyticsPage() {
-  const decisions = useStore((state) => Array.from(state.decisions.values()))
+  const decisionsMap = useStore((state) => state.decisions)
   const loadDecisions = useStore((state) => state.loadDecisions)
   const isLoading = useStore((state) => state.isLoading)
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+
+  // Convert Map to array with useMemo to prevent infinite loops
+  const decisions = useMemo(() => Array.from(decisionsMap.values()), [decisionsMap])
 
   useEffect(() => {
     loadDecisions()
@@ -19,6 +22,8 @@ export function AnalyticsPage() {
     if (decisions.length > 0) {
       const data = generateAnalytics(decisions)
       setAnalytics(data)
+    } else {
+      setAnalytics(null)
     }
   }, [decisions])
 
