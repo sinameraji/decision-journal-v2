@@ -22,14 +22,14 @@ export function IndexPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground tracking-tight mb-2">
-            Decisions
+          <h1 className="font-serif text-2xl font-semibold text-foreground tracking-tight">
+            Your Decisions
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-1">
             {decisions.length} {decisions.length === 1 ? 'decision' : 'decisions'} recorded
           </p>
         </div>
-        <Button className="gap-2" asChild>
+        <Button className="gap-2 font-sans text-sm" size="sm" asChild>
           <Link to="/new">
             <PlusCircle className="h-4 w-4" />
             New Decision
