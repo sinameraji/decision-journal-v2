@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Decision Journal",
-  "version": "0.1.0",
-  "identifier": "com.decisionjournal.app",
+  "version": "2.0.0",
+  "identifier": "com.sinameraji.decisionjournal",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
