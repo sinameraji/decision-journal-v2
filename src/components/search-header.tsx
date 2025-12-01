@@ -72,7 +72,7 @@ export function SearchHeader() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={isRecording ? "Listening..." : "Search your decisions..."}
-              className={`pl-10 h-9 bg-background/50 border-border/50 focus:bg-background font-sans text-sm transition-all ${
+              className={`pl-10 h-9 bg-background/50 border-border focus:bg-background font-sans text-sm transition-all ${
                 isRecording
                   ? "pr-24 border-red-400 dark:border-red-500"
                   : isConfirming

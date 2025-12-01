@@ -330,7 +330,7 @@ export function ChatPage() {
                     <button
                       key={index}
                       onClick={() => handlePromptClick(prompt)}
-                      className="text-left p-4 bg-muted/50 border border-border rounded-xl text-sm text-foreground hover:bg-muted hover:border-border/80 transition-colors"
+                      className="text-left p-4 bg-muted/50 border border-border rounded-xl text-sm text-foreground hover:bg-muted hover:border-border transition-colors"
                     >
                       {prompt}
                     </button>

@@ -72,7 +72,7 @@ export function AnalyticsPage() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-muted rounded-2xl p-6">
+        <Card>
           <div className="flex items-start justify-between mb-2">
             <span className="text-muted-foreground text-sm">Total Decisions</span>
             <TrendingUp className="w-5 h-5 text-muted-foreground" />
@@ -83,9 +83,9 @@ export function AnalyticsPage() {
           <div className="text-muted-foreground text-sm">
             {overview.reviewedCount} reviewed ({Math.round(overview.reviewedPercent)}%)
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-muted rounded-2xl p-6">
+        <Card>
           <div className="flex items-start justify-between mb-2">
             <span className="text-muted-foreground text-sm">Avg Confidence</span>
             <Target className="w-5 h-5 text-muted-foreground" />
@@ -93,9 +93,9 @@ export function AnalyticsPage() {
           <div className="font-serif text-4xl text-foreground">
             {overview.avgConfidence.toFixed(1)}/10
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-muted rounded-2xl p-6">
+        <Card>
           <div className="flex items-start justify-between mb-2">
             <span className="text-muted-foreground text-sm">Avg Alternatives</span>
             <BarChart3 className="w-5 h-5 text-muted-foreground" />
@@ -104,7 +104,7 @@ export function AnalyticsPage() {
             {overview.avgAlternatives.toFixed(1)}
           </div>
           <div className="text-muted-foreground text-sm">per decision</div>
-        </div>
+        </Card>
       </div>
 
       {/* Quality Score */}
@@ -152,14 +152,14 @@ export function AnalyticsPage() {
 
       {/* Emotional Patterns */}
       {emotionalPatterns.length > 0 && (
-        <div className="bg-card rounded-2xl border border-border p-6 mb-6">
+        <Card className="mb-6">
           <div className="flex items-center gap-3 mb-6">
             <Smile className="w-5 h-5 text-muted-foreground" />
             <h2 className="font-serif text-xl text-foreground">Emotional Patterns</h2>
           </div>
           <div className="space-y-3">
             {emotionalPatterns.slice(0, 6).map((pattern) => (
-              <div key={pattern.emotion} className="flex items-center justify-between p-4 bg-muted rounded-xl">
+              <div key={pattern.emotion} className="flex items-center justify-between p-4 bg-muted rounded-lg">
                 <div>
                   <div className="font-serif text-lg text-foreground capitalize">{pattern.emotion}</div>
                   <div className="text-sm text-muted-foreground">
@@ -173,12 +173,12 @@ export function AnalyticsPage() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Tag Patterns */}
       {tagPatterns.length > 0 && (
-        <div className="bg-card rounded-2xl border border-border p-6 mb-6">
+        <Card className="mb-6">
           <div className="flex items-center gap-3 mb-6">
             <Tag className="w-5 h-5 text-muted-foreground" />
             <h2 className="font-serif text-xl text-foreground">Decision Categories</h2>
@@ -199,12 +199,12 @@ export function AnalyticsPage() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Review Prompt */}
       {overview.reviewedPercent < 50 && (
-        <div className="bg-muted rounded-2xl border border-border p-6">
+        <Card className="bg-muted">
           <div className="flex items-start gap-4">
             <AlertTriangle className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
             <div>
@@ -217,7 +217,7 @@ export function AnalyticsPage() {
               </p>
             </div>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   )

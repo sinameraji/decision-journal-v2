@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { Textarea } from "@/components/ui/textarea"
 import { VoiceInputButton } from "@/components/voice-input-button"
 
 const emotionalFlags = ["Regret", "FOMO", "Fear", "Anxiety", "Excitement", "Confidence", "Doubt", "Stress"]
@@ -35,11 +36,11 @@ export function MentalContextTab({ data, updateData }: MentalContextTabProps) {
           Mental State <span className="text-red-500">*</span>
         </label>
         <div className="relative">
-          <textarea
+          <Textarea
             value={data.mentalState}
             onChange={(e) => updateData({ mentalState: e.target.value })}
             placeholder="How are you feeling mentally right now..."
-            className="w-full min-h-[100px] px-4 py-3 pr-12 bg-background border border-input rounded-md text-sm font-sans placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-y"
+            className="min-h-[100px] pr-12 resize-y"
           />
           <div className="absolute right-3 top-3">
             <VoiceInputButton onTranscript={(text) => updateData({ mentalState: data.mentalState + " " + text })} />
@@ -56,11 +57,11 @@ export function MentalContextTab({ data, updateData }: MentalContextTabProps) {
           Physical State <span className="text-red-500">*</span>
         </label>
         <div className="relative">
-          <textarea
+          <Textarea
             value={data.physicalState}
             onChange={(e) => updateData({ physicalState: e.target.value })}
             placeholder="How are you feeling physically..."
-            className="w-full min-h-[100px] px-4 py-3 pr-12 bg-background border border-input rounded-md text-sm font-sans placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-y"
+            className="min-h-[100px] pr-12 resize-y"
           />
           <div className="absolute right-3 top-3">
             <VoiceInputButton onTranscript={(text) => updateData({ physicalState: data.physicalState + " " + text })} />

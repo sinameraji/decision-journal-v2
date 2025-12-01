@@ -1,6 +1,7 @@
 "use client"
 
 import { CustomSelect } from "@/components/custom-select"
+import { Textarea } from "@/components/ui/textarea"
 import { VoiceInputButton } from "@/components/voice-input-button"
 
 interface DecisionTabProps {
@@ -45,11 +46,11 @@ export function DecisionTab({ data, updateData }: DecisionTabProps) {
           Expected Outcome <span className="text-red-500">*</span>
         </label>
         <div className="relative">
-          <textarea
+          <Textarea
             value={data.expectedOutcome}
             onChange={(e) => updateData({ expectedOutcome: e.target.value })}
             placeholder="What do you expect will happen..."
-            className="w-full min-h-[100px] px-4 py-3 pr-12 bg-background border border-input rounded-md text-sm font-sans placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-y"
+            className="min-h-[100px] pr-12 resize-y"
           />
           <div className="absolute right-3 top-3">
             <VoiceInputButton
@@ -66,11 +67,11 @@ export function DecisionTab({ data, updateData }: DecisionTabProps) {
           Best Case Scenario <span className="text-red-500">*</span>
         </label>
         <div className="relative">
-          <textarea
+          <Textarea
             value={data.bestCase}
             onChange={(e) => updateData({ bestCase: e.target.value })}
             placeholder="If everything goes perfectly..."
-            className="w-full min-h-[100px] px-4 py-3 pr-12 bg-background border border-input rounded-md text-sm font-sans placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-y"
+            className="min-h-[100px] pr-12 resize-y"
           />
           <div className="absolute right-3 top-3">
             <VoiceInputButton onTranscript={(text) => updateData({ bestCase: data.bestCase + " " + text })} />
@@ -85,11 +86,11 @@ export function DecisionTab({ data, updateData }: DecisionTabProps) {
           Worst Case Scenario <span className="text-red-500">*</span>
         </label>
         <div className="relative">
-          <textarea
+          <Textarea
             value={data.worstCase}
             onChange={(e) => updateData({ worstCase: e.target.value })}
             placeholder="If things go wrong..."
-            className="w-full min-h-[100px] px-4 py-3 pr-12 bg-background border border-input rounded-md text-sm font-sans placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-y"
+            className="min-h-[100px] pr-12 resize-y"
           />
           <div className="absolute right-3 top-3">
             <VoiceInputButton onTranscript={(text) => updateData({ worstCase: data.worstCase + " " + text })} />

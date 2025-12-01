@@ -40,7 +40,7 @@ export function DecisionCard({ decision }: DecisionCardProps) {
       className={cn(
         "group p-5 transition-all duration-200 cursor-pointer",
         "hover:shadow-md hover:border-primary/20",
-        "bg-card border-border/60",
+        "bg-card border-border",
       )}
       onClick={() => setExpanded(!expanded)}
     >
@@ -75,7 +75,7 @@ export function DecisionCard({ decision }: DecisionCardProps) {
 
           {/* Selected Alternative */}
           {selectedAlternative && (
-            <div className="bg-muted/50 rounded-sm p-3 border border-border/50">
+            <div className="bg-muted/50 rounded-lg p-3 border border-border">
               <p className="text-xs text-muted-foreground mb-1 font-sans">Selected Alternative</p>
               <p className="text-sm font-medium text-foreground font-sans">{selectedAlternative.title}</p>
             </div>

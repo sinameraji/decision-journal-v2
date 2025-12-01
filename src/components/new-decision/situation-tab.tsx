@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { VoiceInputButton } from "@/components/voice-input-button"
 
 interface SituationTabProps {
@@ -44,11 +45,11 @@ export function SituationTab({ data, updateData }: SituationTabProps) {
           Situation <span className="text-red-500">*</span>
         </label>
         <div className="relative">
-          <textarea
+          <Textarea
             value={data.situation}
             onChange={(e) => updateData({ situation: e.target.value })}
             placeholder="Describe the current situation or context..."
-            className="w-full min-h-[120px] px-4 py-3 pr-12 bg-background border border-input rounded-md text-sm font-sans placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-y"
+            className="min-h-[120px] pr-12 resize-y"
           />
           <div className="absolute right-3 top-3">
             <VoiceInputButton onTranscript={(text) => updateData({ situation: data.situation + " " + text })} />
@@ -65,11 +66,11 @@ export function SituationTab({ data, updateData }: SituationTabProps) {
           Problem Statement <span className="text-red-500">*</span>
         </label>
         <div className="relative">
-          <textarea
+          <Textarea
             value={data.problemStatement}
             onChange={(e) => updateData({ problemStatement: e.target.value.slice(0, 100) })}
             placeholder="Clearly define the problem you're trying to solve..."
-            className="w-full min-h-[100px] px-4 py-3 pr-12 bg-background border border-input rounded-md text-sm font-sans placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-y"
+            className="min-h-[100px] pr-12 resize-y"
           />
           <div className="absolute right-3 top-3">
             <VoiceInputButton

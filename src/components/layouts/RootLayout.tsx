@@ -8,7 +8,7 @@ export function RootLayout() {
       {/* Titlebar Drag Region */}
       <div
         data-tauri-drag-region
-        className="fixed top-0 left-0 right-0 h-10 z-50 bg-background/80 backdrop-blur-sm border-b border-border/50"
+        className="fixed top-0 left-0 right-0 h-10 z-50 bg-background/80 backdrop-blur-sm border-b border-border"
       />
 
       {/* Sidebar */}

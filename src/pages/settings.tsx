@@ -54,7 +54,7 @@ export function SettingsPage() {
       </div>
 
       {/* Theme Settings */}
-      <div className="bg-card border border-border rounded-lg shadow-sm p-6">
+      <div className="bg-card border border-border rounded-xl shadow-sm p-6">
         <h2 className="text-xl font-semibold text-foreground mb-4">Appearance</h2>
 
         <div className="space-y-4">
@@ -93,7 +93,7 @@ export function SettingsPage() {
       </div>
 
       {/* Ollama AI Settings */}
-      <div className="bg-card border border-border rounded-lg shadow-sm p-6">
+      <div className="bg-card border border-border rounded-xl shadow-sm p-6">
         <h2 className="text-xl font-semibold text-foreground mb-4">AI Assistant (Ollama)</h2>
 
         {isLoading ? (
@@ -159,7 +159,7 @@ export function SettingsPage() {
       </div>
 
       {/* About Section */}
-      <div className="bg-card border border-border rounded-lg shadow-sm p-6">
+      <div className="bg-card border border-border rounded-xl shadow-sm p-6">
         <h2 className="text-xl font-semibold text-foreground mb-4">About</h2>
         <div className="text-sm text-muted-foreground space-y-2">
           <p>
