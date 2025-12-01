@@ -6,17 +6,7 @@ import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-
-interface Decision {
-  id: string
-  title: string
-  description: string
-  date: string
-  selectedOption: string | null
-  confidence: number | null
-  tags: string[]
-  status: "decided" | "pending"
-}
+import { type Decision } from "@/types/decision"
 
 interface DecisionCardProps {
   decision: Decision
@@ -24,7 +14,19 @@ interface DecisionCardProps {
 
 export function DecisionCard({ decision }: DecisionCardProps) {
   const [expanded, setExpanded] = useState(false)
-  const isDecided = decision.status === "decided"
+  const isDecided = decision.selected_alternative_id !== null
+
+  // Format date from timestamp
+  const dateStr = new Date(decision.created_at).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  })
+
+  // Get selected alternative
+  const selectedAlternative = decision.alternatives.find(
+    alt => alt.id === decision.selected_alternative_id
+  )
 
   return (
     <Card
@@ -47,28 +49,28 @@ export function DecisionCard({ decision }: DecisionCardProps) {
 
           {/* Title */}
           <h3 className={cn("font-serif text-base leading-relaxed text-foreground", !expanded && "line-clamp-2")}>
-            {decision.title}
+            {decision.problem_statement}
           </h3>
         </div>
 
         {/* Date */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0">
           <Calendar className="h-3.5 w-3.5" />
-          <span className="font-sans">{decision.date}</span>
+          <span className="font-sans">{dateStr}</span>
         </div>
       </div>
 
       {/* Expanded Content */}
       {expanded && (
         <div className="mt-4 ml-8 space-y-4">
-          {/* Description */}
-          <p className="text-sm text-muted-foreground leading-relaxed font-sans">{decision.description}</p>
+          {/* Situation */}
+          <p className="text-sm text-muted-foreground leading-relaxed font-sans">{decision.situation}</p>
 
-          {/* Selected Option */}
-          {decision.selectedOption && (
+          {/* Selected Alternative */}
+          {selectedAlternative && (
             <div className="bg-muted/50 rounded-sm p-3 border border-border/50">
               <p className="text-xs text-muted-foreground mb-1 font-sans">Selected Alternative</p>
-              <p className="text-sm font-medium text-foreground font-sans">{decision.selectedOption}</p>
+              <p className="text-sm font-medium text-foreground font-sans">{selectedAlternative.title}</p>
             </div>
           )}
 
@@ -86,17 +88,17 @@ export function DecisionCard({ decision }: DecisionCardProps) {
             </div>
 
             <div className="flex items-center gap-4">
-              {decision.confidence && (
+              {decision.confidence_level && (
                 <div className="flex items-center gap-1.5">
                   <div className="flex gap-0.5">
                     {Array.from({ length: 10 }).map((_, i) => (
                       <div
                         key={i}
-                        className={cn("w-1.5 h-3 rounded-sm", i < (decision.confidence ?? 0) ? "bg-primary" : "bg-muted")}
+                        className={cn("w-1.5 h-3 rounded-sm", i < decision.confidence_level ? "bg-primary" : "bg-muted")}
                       />
                     ))}
                   </div>
-                  <span className="text-xs text-muted-foreground font-mono ml-1">{decision.confidence ?? 0}/10</span>
+                  <span className="text-xs text-muted-foreground font-mono ml-1">{decision.confidence_level}/10</span>
                 </div>
               )}
 
