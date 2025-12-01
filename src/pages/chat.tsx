@@ -17,6 +17,10 @@ import {
   useDownloadingModels,
   useGenerateSessionTitle,
   useCreateNewSession,
+  usePendingMessage,
+  useAutoSubmit,
+  useLinkedDecisionId,
+  useClearPendingMessage,
   type Message,
 } from '@/store'
 
@@ -38,6 +42,12 @@ export function ChatPage() {
   const generateSessionTitle = useGenerateSessionTitle()
   const createNewSession = useCreateNewSession()
 
+  // Hooks for pending message auto-submission
+  const pendingMessage = usePendingMessage()
+  const autoSubmit = useAutoSubmit()
+  const linkedDecisionId = useLinkedDecisionId()
+  const clearPendingMessage = useClearPendingMessage()
+
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [ollamaRunning, setOllamaRunning] = useState<boolean | null>(null)
@@ -54,9 +64,36 @@ export function ChatPage() {
   // Create initial session if none exists
   useEffect(() => {
     if (!currentSessionId) {
-      createNewSession()
+      // Create session with linkedDecisionId if coming from decision page
+      if (linkedDecisionId) {
+        createNewSession(linkedDecisionId)
+      } else {
+        createNewSession()
+      }
     }
-  }, [currentSessionId])
+  }, [currentSessionId, createNewSession, linkedDecisionId])
+
+  // Auto-submit pending message when coming from decision page
+  useEffect(() => {
+    if (!pendingMessage || !currentSessionId) return
+
+    // Wait for Ollama status check
+    if (ollamaRunning === null) return
+
+    // Auto-submit if conditions are met
+    if (autoSubmit && ollamaRunning && !isStreaming) {
+      const autoSubmitTimer = setTimeout(() => {
+        handleSend(pendingMessage)
+        clearPendingMessage()
+      }, 150)  // 150ms delay for UI stability
+
+      return () => clearTimeout(autoSubmitTimer)
+    } else if (autoSubmit && !ollamaRunning) {
+      // Fallback: pre-fill input if Ollama not running
+      setInput(pendingMessage)
+      clearPendingMessage()
+    }
+  }, [pendingMessage, autoSubmit, ollamaRunning, isStreaming, currentSessionId, clearPendingMessage])
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -118,10 +155,18 @@ export function ChatPage() {
     addMessage(assistantMessage)
 
     // Prepare messages for Ollama (include system prompt)
+    // Build system message with coaching prompt
+    let systemMessage = ollamaService.getDecisionAnalysisPrompt()
+
+    // Add decision context if this is a decision-linked session
+    if (linkedDecisionId) {
+      systemMessage += '\n\nYou are currently discussing a specific decision from the user\'s decision journal. The decision context has been provided in the conversation.'
+    }
+
     const ollamaMessages: OllamaChatMessage[] = [
       {
         role: 'system',
-        content: ollamaService.getDecisionAnalysisPrompt(),
+        content: systemMessage,
       },
       ...messages.map((m) => ({
         role: m.role,

@@ -51,6 +51,24 @@ const analyticsRoute = createRoute({
   component: AnalyticsPage,
 })
 
+// Reviews route
+import { ReviewsPage } from '@/pages/reviews'
+
+const reviewsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reviews',
+  component: ReviewsPage,
+})
+
+// Review decision route
+import { ReviewDecisionPage } from '@/pages/decision.$id.review'
+
+const reviewDecisionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/decision/$id/review',
+  component: ReviewDecisionPage,
+})
+
 // Route tree
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -58,6 +76,8 @@ const routeTree = rootRoute.addChildren([
   decisionDetailRoute,
   chatRoute,
   analyticsRoute,
+  reviewsRoute,
+  reviewDecisionRoute,
 ])
 
 // Create and export router
