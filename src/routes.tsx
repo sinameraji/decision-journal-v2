@@ -42,8 +42,23 @@ const chatRoute = createRoute({
   component: ChatPage,
 })
 
+// Analytics route
+import { AnalyticsPage } from '@/pages/analytics'
+
+const analyticsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/analytics',
+  component: AnalyticsPage,
+})
+
 // Route tree
-const routeTree = rootRoute.addChildren([indexRoute, newRoute, decisionDetailRoute, chatRoute])
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  newRoute,
+  decisionDetailRoute,
+  chatRoute,
+  analyticsRoute,
+])
 
 // Create and export router
 export const router = createRouter({ routeTree })
