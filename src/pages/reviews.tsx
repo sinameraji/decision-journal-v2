@@ -67,7 +67,7 @@ export function ReviewsPage() {
         <div className="bg-card border border-border rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-muted-foreground">Total Decisions</h3>
-            <Calendar className="h-5 w-5 text-blue-500" />
+            <Calendar className="h-5 w-5 text-muted-foreground" />
           </div>
           <p className="text-3xl font-bold text-foreground">{decisions.length}</p>
         </div>
@@ -75,7 +75,7 @@ export function ReviewsPage() {
         <div className="bg-card border border-border rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-muted-foreground">Pending Reviews</h3>
-            <AlertCircle className="h-5 w-5 text-yellow-500" />
+            <AlertCircle className="h-5 w-5 text-muted-foreground" />
           </div>
           <p className="text-3xl font-bold text-foreground">{pendingReviews.length}</p>
         </div>
@@ -83,7 +83,7 @@ export function ReviewsPage() {
         <div className="bg-card border border-border rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-muted-foreground">Reviewed</h3>
-            <CheckCircle className="h-5 w-5 text-green-500" />
+            <CheckCircle className="h-5 w-5 text-muted-foreground" />
           </div>
           <p className="text-3xl font-bold text-foreground">{completedReviews.length}</p>
         </div>
@@ -93,7 +93,7 @@ export function ReviewsPage() {
       {pendingReviews.length > 0 ? (
         <div className="bg-card border border-border rounded-lg shadow-sm p-6">
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-            <AlertCircle className="h-6 w-6 text-yellow-500" />
+            <AlertCircle className="h-6 w-6 text-muted-foreground" />
             Pending Reviews ({pendingReviews.length})
           </h2>
 
@@ -173,7 +173,7 @@ export function ReviewsPage() {
         </div>
       ) : (
         <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-8 text-center">
-          <CheckCircle className="h-16 w-16 text-green-600 dark:text-green-500 mx-auto mb-4" />
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2">All Caught Up!</h2>
           <p className="text-green-600 dark:text-green-500">
             {decisions.length === 0
@@ -187,7 +187,7 @@ export function ReviewsPage() {
       {completedReviews.length > 0 && (
         <div className="bg-card border border-border rounded-lg shadow-sm p-6">
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-            <CheckCircle className="h-6 w-6 text-green-500" />
+            <CheckCircle className="h-6 w-6 text-muted-foreground" />
             Recently Reviewed ({completedReviews.length})
           </h2>
 
@@ -237,7 +237,7 @@ export function ReviewsPage() {
                       </div>
                     </div>
 
-                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                   </div>
                 </div>
               );
