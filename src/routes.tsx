@@ -24,8 +24,17 @@ const newRoute = createRoute({
   component: NewPage,
 })
 
+// Decision detail route
+import { DecisionDetailPage } from '@/pages/decision.$id'
+
+const decisionDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/decision/$id',
+  component: DecisionDetailPage,
+})
+
 // Route tree
-const routeTree = rootRoute.addChildren([indexRoute, newRoute])
+const routeTree = rootRoute.addChildren([indexRoute, newRoute, decisionDetailRoute])
 
 // Create and export router
 export const router = createRouter({ routeTree })

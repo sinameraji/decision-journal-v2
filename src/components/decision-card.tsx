@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, MessageCircle, ChevronDown, ChevronUp, CheckCircle2, Circle } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { Calendar, MessageCircle, ChevronDown, ChevronUp, CheckCircle2, Circle, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -113,6 +114,19 @@ export function DecisionCard({ decision }: DecisionCardProps) {
               >
                 <MessageCircle className="h-3.5 w-3.5" />
                 Discuss
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs gap-1.5 h-8 font-sans text-primary hover:text-primary/80"
+                asChild
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Link to={`/decision/$id`} params={{ id: decision.id }}>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  View Details
+                </Link>
               </Button>
             </div>
           </div>
