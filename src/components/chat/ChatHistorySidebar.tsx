@@ -63,34 +63,37 @@ export function ChatHistorySidebar() {
   }
 
   return (
-    <div className="w-56 flex-shrink-0">
-      {isLoadingSessions ? (
-        // Loading state
-        <div className="flex items-center justify-center h-32">
-          <div className="text-sm text-muted-foreground">Loading chats...</div>
-        </div>
-      ) : sessions.length === 0 ? (
-        // Empty state
-        <div className="flex flex-col items-center justify-center p-6 text-center">
-          <MessageSquare className="h-12 w-12 text-muted-foreground mb-3" />
-          <p className="text-sm text-foreground">No chat sessions yet</p>
-          <p className="text-xs text-muted-foreground mt-1">Start a new conversation</p>
-        </div>
-      ) : (
-        // Sessions list
-        <div className="space-y-1">
-          {sessions.map((session) => (
-            <ChatSessionItem
-              key={session.id}
-              session={session}
-              isActive={session.id === currentSessionId}
-              onSelect={handleSelectSession}
-            />
-          ))}
-        </div>
-      )}
+    <div className="w-56 flex-shrink-0 flex flex-col h-full">
+      {/* Scrollable sessions area */}
+      <div className="flex-1 overflow-y-auto">
+        {isLoadingSessions ? (
+          // Loading state
+          <div className="flex items-center justify-center h-32">
+            <div className="text-sm text-muted-foreground">Loading chats...</div>
+          </div>
+        ) : sessions.length === 0 ? (
+          // Empty state
+          <div className="flex flex-col items-center justify-center p-6 text-center">
+            <MessageSquare className="h-12 w-12 text-muted-foreground mb-3" />
+            <p className="text-sm text-foreground">No chat sessions yet</p>
+            <p className="text-xs text-muted-foreground mt-1">Start a new conversation</p>
+          </div>
+        ) : (
+          // Sessions list
+          <div className="space-y-1">
+            {sessions.map((session) => (
+              <ChatSessionItem
+                key={session.id}
+                session={session}
+                isActive={session.id === currentSessionId}
+                onSelect={handleSelectSession}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-      {/* New Chat button - inline at bottom */}
+      {/* New Chat button - fixed at bottom */}
       <button
         onClick={handleNewChat}
         className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-card border border-border rounded-xl text-muted-foreground hover:bg-muted transition-colors"

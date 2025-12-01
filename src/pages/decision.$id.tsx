@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Calendar, Tag, Brain, TrendingUp, Edit2, Trash2 } from 'lucide-react'
+import { ArrowLeft, Calendar, Tag, Brain, TrendingUp, Edit2, Trash2, MessageCircle } from 'lucide-react'
 import { useStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { format } from 'date-fns'
+import { buildDecisionChatContext } from '@/utils/chat-context-builder'
 
 export function DecisionDetailPage() {
   const { id } = useParams({ from: '/decision/$id' })
@@ -17,6 +18,8 @@ export function DecisionDetailPage() {
   const error = useStore((state) => state.error)
   const loadDecision = useStore((state) => state.loadDecision)
   const deleteDecision = useStore((state) => state.deleteDecision)
+  const decisions = useStore((state) => state.decisions)
+  const setPendingMessage = useStore((state) => state.setPendingMessage)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   // Load decision on mount
@@ -39,6 +42,14 @@ export function DecisionDetailPage() {
     } catch (error) {
       console.error('Failed to delete decision:', error)
     }
+  }
+
+  const handleDiscussWithAI = () => {
+    if (!currentDecision) return
+
+    const contextMessage = buildDecisionChatContext(currentDecision, decisions)
+    setPendingMessage(contextMessage, true, currentDecision.id)
+    navigate({ to: '/chat' })
   }
 
   // Loading state
@@ -121,6 +132,15 @@ export function DecisionDetailPage() {
           </div>
 
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={handleDiscussWithAI}
+            >
+              <MessageCircle className="h-4 w-4" />
+              Discuss with AI
+            </Button>
             <Button variant="outline" size="sm" className="gap-2">
               <Edit2 className="h-4 w-4" />
               Edit

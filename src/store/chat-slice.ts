@@ -111,8 +111,18 @@ export const createChatSlice: StateCreator<
 
   // Actions
   addMessage: (message: Message) => {
-    const messages = [...get().messages, message]
-    set({ messages })
+    const messages = get().messages
+    const existingIndex = messages.findIndex(m => m.id === message.id)
+
+    if (existingIndex >= 0) {
+      // Update existing message (for streaming updates)
+      const updatedMessages = [...messages]
+      updatedMessages[existingIndex] = message
+      set({ messages: updatedMessages })
+    } else {
+      // Add new message
+      set({ messages: [...messages, message] })
+    }
   },
 
   clearMessages: () => {

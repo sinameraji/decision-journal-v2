@@ -15,7 +15,7 @@ export function RootLayout() {
       <AppSidebar />
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-auto pt-10">
+      <main className="flex-1 overflow-hidden pt-10">
         <Outlet />
       </main>
 

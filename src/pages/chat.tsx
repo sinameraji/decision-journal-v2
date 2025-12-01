@@ -80,11 +80,19 @@ export function ChatPage() {
     // Wait for Ollama status check
     if (ollamaRunning === null) return
 
+    // Additional guard: don't auto-submit if already streaming or about to stream
+    if (isStreaming || abortControllerRef.current) {
+      return
+    }
+
     // Auto-submit if conditions are met
-    if (autoSubmit && ollamaRunning && !isStreaming) {
+    if (autoSubmit && ollamaRunning) {
       const autoSubmitTimer = setTimeout(() => {
-        handleSend(pendingMessage)
-        clearPendingMessage()
+        // Double-check conditions before sending
+        if (!isStreaming && !abortControllerRef.current) {
+          handleSend(pendingMessage)
+          clearPendingMessage()
+        }
       }, 150)  // 150ms delay for UI stability
 
       return () => clearTimeout(autoSubmitTimer)
@@ -123,6 +131,10 @@ export function ChatPage() {
       return
     }
 
+    // Create abort controller IMMEDIATELY to claim the lock
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -130,11 +142,13 @@ export function ChatPage() {
       timestamp: Date.now(),
     }
 
+    // Set streaming flag IMMEDIATELY after guard
+    setIsStreaming(true)
+    setInput('')
+    setError(null)
+
     // Add to UI
     addMessage(userMessage)
-    setInput('')
-    setIsStreaming(true)
-    setError(null)
 
     // Save to database
     await saveMessageToDb(userMessage)
@@ -178,10 +192,6 @@ export function ChatPage() {
       },
     ]
 
-    // Create abort controller
-    const abortController = new AbortController()
-    abortControllerRef.current = abortController
-
     let fullResponse = ''
 
     try {
@@ -189,8 +199,12 @@ export function ChatPage() {
         ollamaMessages,
         // onChunk
         (text: string) => {
+          // Verify we're still the active stream
+          if (abortController.signal.aborted) {
+            return
+          }
+
           fullResponse += text
-          // Force update by creating new message object
           addMessage({ ...assistantMessage, content: fullResponse })
         },
         // onComplete
@@ -244,13 +258,13 @@ export function ChatPage() {
   const downloadingCount = downloadingModels.size
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
-      <div className="flex gap-6">
+    <div className="h-full flex flex-col max-w-5xl mx-auto px-6 py-8">
+      <div className="flex gap-6 flex-1 min-h-0">
         {/* Chat History Sidebar */}
         <ChatHistorySidebar />
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>

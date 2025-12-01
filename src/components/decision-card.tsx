@@ -1,13 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { Link } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { Calendar, MessageCircle, ChevronDown, ChevronUp, CheckCircle2, Circle, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { type Decision } from "@/types/decision"
+import { useStore } from "@/store"
+import { buildDecisionChatContext } from "@/utils/chat-context-builder"
 
 interface DecisionCardProps {
   decision: Decision
@@ -16,6 +18,10 @@ interface DecisionCardProps {
 export function DecisionCard({ decision }: DecisionCardProps) {
   const [expanded, setExpanded] = useState(false)
   const isDecided = decision.selected_alternative_id !== null
+
+  const navigate = useNavigate()
+  const decisions = useStore((state) => state.decisions)
+  const setPendingMessage = useStore((state) => state.setPendingMessage)
 
   // Format date from timestamp
   const dateStr = new Date(decision.created_at).toLocaleDateString('en-US', {
@@ -109,11 +115,13 @@ export function DecisionCard({ decision }: DecisionCardProps) {
                 className="text-xs gap-1.5 h-8 font-sans text-muted-foreground hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation()
-                  // Handle discuss action
+                  const contextMessage = buildDecisionChatContext(decision, decisions)
+                  setPendingMessage(contextMessage, true, decision.id)
+                  navigate({ to: '/chat' })
                 }}
               >
                 <MessageCircle className="h-3.5 w-3.5" />
-                Discuss
+                Discuss with AI
               </Button>
 
               <Button
