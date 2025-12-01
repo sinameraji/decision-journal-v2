@@ -80,6 +80,12 @@ export function ChatPage() {
     const textToSend = messageText || input.trim()
     if (!textToSend || isStreaming || !ollamaRunning) return
 
+    // GUARD: Prevent multiple concurrent calls
+    if (abortControllerRef.current) {
+      console.warn('Message send already in progress, ignoring duplicate call')
+      return
+    }
+
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',

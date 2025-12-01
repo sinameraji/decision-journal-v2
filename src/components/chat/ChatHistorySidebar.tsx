@@ -43,7 +43,7 @@ export function ChatHistorySidebar() {
       controller.abort()
       clearTimeout(timeout)
     }
-  }, [loadChatSessions])
+  }, [])
 
   const handleSelectSession = async (sessionId: string) => {
     if (sessionId === currentSessionId) return // Already active

@@ -255,7 +255,13 @@ export const createChatSlice: StateCreator<
     set({ isLoadingSessions: true, sessionsError: null })
     try {
       const sessions = await sqliteService.getChatSessions(50)
-      set({ sessions, isLoadingSessions: false })
+
+      // DEDUPLICATE by ID to prevent duplicate key errors
+      const uniqueSessions = Array.from(
+        new Map(sessions.map((s: ChatSessionWithMetadata) => [s.id, s])).values()
+      )
+
+      set({ sessions: uniqueSessions, isLoadingSessions: false })
     } catch (error) {
       console.error('Failed to load chat sessions:', error)
       set({ sessionsError: (error as Error).message, isLoadingSessions: false })
@@ -265,7 +271,13 @@ export const createChatSlice: StateCreator<
   refreshSessions: async () => {
     try {
       const sessions = await sqliteService.getChatSessions(50)
-      set({ sessions })
+
+      // DEDUPLICATE by ID to prevent duplicate key errors
+      const uniqueSessions = Array.from(
+        new Map(sessions.map((s: ChatSessionWithMetadata) => [s.id, s])).values()
+      )
+
+      set({ sessions: uniqueSessions })
     } catch (error) {
       console.error('Failed to refresh sessions:', error)
     }
