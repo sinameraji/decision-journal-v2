@@ -26,11 +26,6 @@ class SQLiteService {
   async initialize(): Promise<void> {
     // Skip initialization in browser environment (not Tauri)
     if (!isDesktop()) {
-      console.log('⚠️ Database not initialized: Running in browser mode (SQLite requires Tauri)');
-      console.log('Platform check:', {
-        hasWindow: typeof window !== 'undefined',
-        hasTauri: typeof window !== 'undefined' && '__TAURI__' in window,
-      });
       return;
     }
 
@@ -38,8 +33,6 @@ class SQLiteService {
     if (this.db) {
       return;
     }
-
-    console.log('✅ Desktop environment detected - initializing SQLite database');
 
     try {
       // Load database using Tauri SQL plugin
@@ -177,9 +170,6 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
       `;
 
       await this.db.execute(schema);
-
-      console.log('✓ Database initialized successfully at app data directory');
-      console.log('✅ SQLite connection established');
     } catch (error) {
       console.error('✗ Database initialization failed:', error);
       this.db = null;
@@ -260,7 +250,6 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
       const decisions = this.getLocalStorageData<Decision>('decisions');
       decisions.push(newDecision);
       this.setLocalStorageData('decisions', decisions);
-      console.log('✅ Decision saved to localStorage:', id);
       return newDecision;
     }
 
@@ -320,7 +309,6 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
         throw new Error('Failed to retrieve created decision');
       }
 
-      console.log('✅ Decision saved to SQLite:', id);
       return created;
     } catch (error) {
       console.error('Error creating decision:', error);
@@ -552,7 +540,6 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
       };
 
       this.setLocalStorageData('decisions', decisions);
-      console.log('✅ Decision updated in localStorage:', id);
       return decisions[index];
     }
 
@@ -651,7 +638,6 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
       const decisions = this.getLocalStorageData<Decision>('decisions');
       const filtered = decisions.filter(d => d.id !== id);
       this.setLocalStorageData('decisions', filtered);
-      console.log('✅ Decision deleted from localStorage:', id);
       return;
     }
 

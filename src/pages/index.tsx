@@ -5,6 +5,7 @@ import { useStore } from '@/store'
 import { DecisionCard } from '@/components/decision-card'
 import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export function IndexPage() {
   const decisions = useStore((state) => state.decisions)
@@ -46,8 +47,19 @@ export function IndexPage() {
 
       {/* Loading State */}
       {isLoading && decisions.length === 0 && (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Loading decisions...</p>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border border-border rounded-lg p-6 space-y-3">
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <div className="flex gap-2 pt-2">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
