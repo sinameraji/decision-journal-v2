@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Decision Journal needs access to your microphone to enable voice input for transcribing your decisions hands-free.</string>
+    <key>NSUserNotificationsUsageDescription</key>
+    <string>Decision Journal would like to send you notifications to alert you when exports complete and remind you to review past decisions.</string>
+</dict>
+</plist>
