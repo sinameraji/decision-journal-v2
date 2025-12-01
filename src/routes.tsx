@@ -69,6 +69,29 @@ const reviewDecisionRoute = createRoute({
   component: ReviewDecisionPage,
 })
 
+// Settings route
+import { SettingsPage } from '@/pages/settings'
+
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: SettingsPage,
+})
+
+// Search route
+import { SearchPage } from '@/pages/search'
+
+const searchRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/search',
+  component: SearchPage,
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      q: search.q as string | undefined,
+    }
+  },
+})
+
 // Route tree
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -78,6 +101,8 @@ const routeTree = rootRoute.addChildren([
   analyticsRoute,
   reviewsRoute,
   reviewDecisionRoute,
+  settingsRoute,
+  searchRoute,
 ])
 
 // Create and export router
