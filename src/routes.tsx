@@ -1,19 +1,5 @@
-import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
-
-// Root layout component
-function RootLayout() {
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="flex h-screen">
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            <Outlet />
-          </div>
-        </main>
-      </div>
-    </div>
-  )
-}
+import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
+import { RootLayout } from '@/components/layouts/RootLayout'
 
 // Root route
 const rootRoute = createRootRoute({
