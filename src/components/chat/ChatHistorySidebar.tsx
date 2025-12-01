@@ -8,6 +8,7 @@ import {
   useLoadMessagesFromSession,
   useCreateNewSession,
   useClearMessages,
+  useRefreshSessions,
 } from '@/store'
 import { ChatSessionItem } from './ChatSessionItem'
 
@@ -20,6 +21,7 @@ export function ChatHistorySidebar() {
   const loadMessagesFromSession = useLoadMessagesFromSession()
   const createNewSession = useCreateNewSession()
   const clearMessages = useClearMessages()
+  const refreshSessions = useRefreshSessions()
 
   // Load sessions on mount with error handling
   useEffect(() => {
@@ -56,6 +58,8 @@ export function ChatHistorySidebar() {
   const handleNewChat = async () => {
     clearMessages()
     await createNewSession()
+    // Refresh sessions list to show the new session
+    await refreshSessions()
   }
 
   return (

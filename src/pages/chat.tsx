@@ -56,7 +56,7 @@ export function ChatPage() {
     if (!currentSessionId) {
       createNewSession()
     }
-  }, [currentSessionId, createNewSession])
+  }, [currentSessionId])
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
