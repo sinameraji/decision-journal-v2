@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Calendar, Tag, Brain, TrendingUp, Edit2, Trash2 } from 'lucide-react'
 import { useStore } from '@/store'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { format } from 'date-fns'
 
 export function DecisionDetailPage() {
@@ -16,6 +17,7 @@ export function DecisionDetailPage() {
   const error = useStore((state) => state.error)
   const loadDecision = useStore((state) => state.loadDecision)
   const deleteDecision = useStore((state) => state.deleteDecision)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   // Load decision on mount
   useEffect(() => {
@@ -24,11 +26,12 @@ export function DecisionDetailPage() {
     }
   }, [id, loadDecision])
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteConfirm = async () => {
     if (!currentDecision) return
-    if (!confirm('Are you sure you want to delete this decision? This action cannot be undone.')) {
-      return
-    }
 
     try {
       await deleteDecision(currentDecision.id)
@@ -126,7 +129,7 @@ export function DecisionDetailPage() {
               variant="outline"
               size="sm"
               className="gap-2 text-destructive hover:text-destructive"
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
             >
               <Trash2 className="h-4 w-4" />
               Delete
@@ -134,6 +137,19 @@ export function DecisionDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Decision?"
+        description="This action cannot be undone. This will permanently delete this decision and all associated data."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        requireConfirmation="DELETE"
+        onConfirm={handleDeleteConfirm}
+      />
 
       {/* Tags */}
       {currentDecision.tags.length > 0 && (
