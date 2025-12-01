@@ -15,18 +15,13 @@ const indexRoute = createRoute({
   component: IndexPage,
 })
 
-// New decision route (placeholder for now)
+// New decision route
+import { NewPage } from '@/pages/new'
+
 const newRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/new',
-  component: function NewPage() {
-    return (
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-3xl font-serif font-bold">New Decision</h1>
-        <p className="text-muted-foreground mt-2">Coming soon...</p>
-      </div>
-    )
-  },
+  component: NewPage,
 })
 
 // Route tree
