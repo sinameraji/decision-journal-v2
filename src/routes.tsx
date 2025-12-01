@@ -33,17 +33,17 @@ const decisionDetailRoute = createRoute({
   component: DecisionDetailPage,
 })
 
-// Chat route (temporarily disabled due to TypeScript errors)
-// import { ChatPage } from '@/pages/chat'
+// Chat route
+import { ChatPage } from '@/pages/chat'
 
-// const chatRoute = createRoute({
-//   getParentRoute: () => rootRoute,
-//   path: '/chat',
-//   component: ChatPage,
-// })
+const chatRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/chat',
+  component: ChatPage,
+})
 
 // Route tree
-const routeTree = rootRoute.addChildren([indexRoute, newRoute, decisionDetailRoute])
+const routeTree = rootRoute.addChildren([indexRoute, newRoute, decisionDetailRoute, chatRoute])
 
 // Create and export router
 export const router = createRouter({ routeTree })
