@@ -3,12 +3,13 @@ import { persist } from 'zustand/middleware'
 import { createDecisionsSlice, type DecisionsSlice } from './decisions-slice'
 import { createUISlice, type UISlice } from './ui-slice'
 import { createChatSlice, type ChatSlice, type Message } from './chat-slice'
+import { createPreferencesSlice, type PreferencesSlice } from './preferences-slice'
 
 // Re-export types for convenience
 export type { Message }
 
 // Combined store type
-export type Store = DecisionsSlice & UISlice & ChatSlice
+export type Store = DecisionsSlice & UISlice & ChatSlice & PreferencesSlice
 
 // Create the store with all slices
 export const useStore = create<Store>()(
@@ -17,6 +18,7 @@ export const useStore = create<Store>()(
       ...createDecisionsSlice(...a),
       ...createUISlice(...a),
       ...createChatSlice(...a),
+      ...createPreferencesSlice(...a),
     }),
     {
       name: 'decision-journal-storage',
@@ -96,3 +98,29 @@ export const useRemoveDownloadProgress = () => useStore((state) => state.removeD
 
 // Cleanup actions
 export const useCleanup = () => useStore((state) => state.cleanup)
+
+// =============================================================================
+// Preferences Selectors
+// =============================================================================
+
+export const useOnboardingCompleted = () => useStore((state) => state.onboardingCompleted)
+export const useMicrophonePermission = () => useStore((state) => state.microphonePermission)
+export const useMicrophoneAvailable = () => useStore((state) => state.microphoneAvailable)
+export const useShowVoiceTooltips = () => useStore((state) => state.showVoiceTooltips)
+export const useIsLoadingPreferences = () => useStore((state) => state.isLoadingPreferences)
+export const usePreferredOllamaModel = () => useStore((state) => state.preferredOllamaModel)
+export const useOllamaSetupCompleted = () => useStore((state) => state.ollamaSetupCompleted)
+export const useNotificationPermission = () => useStore((state) => state.notificationPermission)
+export const usePreferencesLoadedFromDatabase = () => useStore((state) => state.preferencesLoadedFromDatabase)
+
+// =============================================================================
+// Preferences Actions
+// =============================================================================
+
+export const useLoadPreferences = () => useStore((state) => state.loadPreferences)
+export const useSetOnboardingCompleted = () => useStore((state) => state.setOnboardingCompleted)
+export const useUpdateMicrophonePermission = () => useStore((state) => state.updateMicrophonePermission)
+export const useCheckMicrophonePermission = () => useStore((state) => state.checkMicrophonePermission)
+export const useDismissVoiceTooltips = () => useStore((state) => state.dismissVoiceTooltips)
+export const useSetOllamaSetupCompleted = () => useStore((state) => state.setOllamaSetupCompleted)
+export const useCheckOllamaStatus = () => useStore((state) => state.checkOllamaStatus)

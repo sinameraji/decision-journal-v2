@@ -227,7 +227,7 @@ export const createChatSlice: StateCreator<
       set({ pendingSessions })
 
       // Create a new pending session to allow user to retry
-      const newTempId = get().createPendingSession(get().linkedDecisionId || undefined)
+      get().createPendingSession(get().linkedDecisionId || undefined)
 
       throw error
     }
@@ -288,7 +288,6 @@ export const createChatSlice: StateCreator<
 
     // If session is pending (temp ID), persist it first
     if (isTempSessionId(sessionId)) {
-      const tempSessionId = sessionId
       try {
         sessionId = await get().persistPendingSession(sessionId)
 

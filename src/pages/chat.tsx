@@ -64,67 +64,6 @@ export function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Check if Ollama is running on mount
-  useEffect(() => {
-    checkOllamaStatus()
-  }, [])
-
-  // Create initial session if none exists OR if current is stale temp
-  useEffect(() => {
-    if (!currentSessionId || (isPendingSession(currentSessionId) && messages.length === 0)) {
-      // Create session with linkedDecisionId if coming from decision page
-      if (linkedDecisionId) {
-        createNewSession(linkedDecisionId)
-      } else {
-        createNewSession()
-      }
-    }
-  }, [currentSessionId, createNewSession, linkedDecisionId, isPendingSession, messages.length])
-
-  // Cleanup pending sessions and timers when leaving chat page
-  useEffect(() => {
-    return () => {
-      // On unmount, cleanup abandoned pending sessions and pending timers
-      cleanupPendingSessions()
-      cleanup()
-    }
-  }, [cleanupPendingSessions, cleanup])
-
-  // Auto-submit pending message when coming from decision page
-  useEffect(() => {
-    if (!pendingMessage || !currentSessionId) return
-
-    // Wait for Ollama status check
-    if (ollamaRunning === null) return
-
-    // Additional guard: don't auto-submit if already streaming or about to stream
-    if (isStreaming || abortControllerRef.current) {
-      return
-    }
-
-    // Auto-submit if conditions are met
-    if (autoSubmit && ollamaRunning) {
-      const autoSubmitTimer = setTimeout(() => {
-        // Double-check conditions before sending
-        if (!isStreaming && !abortControllerRef.current) {
-          handleSend(pendingMessage)
-          clearPendingMessage()
-        }
-      }, 150)  // 150ms delay for UI stability
-
-      return () => clearTimeout(autoSubmitTimer)
-    } else if (autoSubmit && !ollamaRunning) {
-      // Fallback: pre-fill input if Ollama not running
-      setInput(pendingMessage)
-      clearPendingMessage()
-    }
-  }, [pendingMessage, autoSubmit, ollamaRunning, isStreaming, currentSessionId, clearPendingMessage, handleSend])
-
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
   const checkOllamaStatus = async () => {
     try {
       const running = await ollamaService.isRunning()
@@ -255,6 +194,67 @@ export function ChatPage() {
       abortControllerRef.current = null
     }
   }, [input, isStreaming, ollamaRunning, addMessage, saveMessageToDb, messages, currentSessionId, generateSessionTitle, linkedDecisionId, selectedModel])
+
+  // Check if Ollama is running on mount
+  useEffect(() => {
+    checkOllamaStatus()
+  }, [])
+
+  // Create initial session if none exists OR if current is stale temp
+  useEffect(() => {
+    if (!currentSessionId || (isPendingSession(currentSessionId) && messages.length === 0)) {
+      // Create session with linkedDecisionId if coming from decision page
+      if (linkedDecisionId) {
+        createNewSession(linkedDecisionId)
+      } else {
+        createNewSession()
+      }
+    }
+  }, [currentSessionId, createNewSession, linkedDecisionId, isPendingSession, messages.length])
+
+  // Cleanup pending sessions and timers when leaving chat page
+  useEffect(() => {
+    return () => {
+      // On unmount, cleanup abandoned pending sessions and pending timers
+      cleanupPendingSessions()
+      cleanup()
+    }
+  }, [cleanupPendingSessions, cleanup])
+
+  // Auto-submit pending message when coming from decision page
+  useEffect(() => {
+    if (!pendingMessage || !currentSessionId) return
+
+    // Wait for Ollama status check
+    if (ollamaRunning === null) return
+
+    // Additional guard: don't auto-submit if already streaming or about to stream
+    if (isStreaming || abortControllerRef.current) {
+      return
+    }
+
+    // Auto-submit if conditions are met
+    if (autoSubmit && ollamaRunning) {
+      const autoSubmitTimer = setTimeout(() => {
+        // Double-check conditions before sending
+        if (!isStreaming && !abortControllerRef.current) {
+          handleSend(pendingMessage)
+          clearPendingMessage()
+        }
+      }, 150)  // 150ms delay for UI stability
+
+      return () => clearTimeout(autoSubmitTimer)
+    } else if (autoSubmit && !ollamaRunning) {
+      // Fallback: pre-fill input if Ollama not running
+      setInput(pendingMessage)
+      clearPendingMessage()
+    }
+  }, [pendingMessage, autoSubmit, ollamaRunning, isStreaming, currentSessionId, clearPendingMessage, handleSend])
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

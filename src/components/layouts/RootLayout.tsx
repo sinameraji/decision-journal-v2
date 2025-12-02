@@ -1,6 +1,7 @@
 import { Outlet } from '@tanstack/react-router'
 import { AppSidebar } from '@/components/app-sidebar'
 import { Toaster } from '@/components/ui/sonner'
+import { CommandPalette } from '@/components/command-palette'
 
 export function RootLayout() {
   return (
@@ -21,6 +22,9 @@ export function RootLayout() {
 
       {/* Toast Notifications */}
       <Toaster />
+
+      {/* Command Palette */}
+      <CommandPalette />
     </div>
   )
 }

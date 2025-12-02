@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useNavigate } from "@tanstack/react-router"
 import {
   FileText,
   PlusCircle,
@@ -28,7 +28,7 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const router = useRouter()
+  const navigate = useNavigate()
 
   const filteredItems = navigationItems.filter((item) => item.label.toLowerCase().includes(search.toLowerCase()))
 
@@ -36,9 +36,9 @@ export function CommandPalette() {
     (href: string) => {
       setOpen(false)
       setSearch("")
-      router.push(href)
+      navigate({ to: href })
     },
-    [router],
+    [navigate],
   )
 
   useEffect(() => {
