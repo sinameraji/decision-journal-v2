@@ -75,6 +75,9 @@ export const useSetCurrentSessionId = () => useStore((state) => state.setCurrent
 export const useSetLinkedDecision = () => useStore((state) => state.setLinkedDecision)
 export const useSaveMessageToDb = () => useStore((state) => state.saveMessageToDb)
 export const useLoadMostRecentSession = () => useStore((state) => state.loadMostRecentSession)
+export const useCleanupPendingSessions = () => useStore((state) => state.cleanupPendingSessions)
+export const useIsPendingSession = () => useStore((state) => state.isPendingSession)
+export const usePersistPendingSession = () => useStore((state) => state.persistPendingSession)
 
 // Chat sessions actions
 export const useLoadChatSessions = () => useStore((state) => state.loadChatSessions)

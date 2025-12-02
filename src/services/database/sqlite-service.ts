@@ -821,6 +821,7 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
       LEFT JOIN chat_messages cm ON cs.id = cm.session_id
       LEFT JOIN decisions d ON cs.decision_id = d.id
       GROUP BY cs.id
+      HAVING message_count > 0
       ORDER BY cs.updated_at DESC
       ${limit ? `LIMIT ${limit}` : ''}
     `;

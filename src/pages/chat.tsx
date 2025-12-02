@@ -21,6 +21,8 @@ import {
   useAutoSubmit,
   useLinkedDecisionId,
   useClearPendingMessage,
+  useCleanupPendingSessions,
+  useIsPendingSession,
   type Message,
 } from '@/store'
 
@@ -48,6 +50,10 @@ export function ChatPage() {
   const linkedDecisionId = useLinkedDecisionId()
   const clearPendingMessage = useClearPendingMessage()
 
+  // Hooks for pending session cleanup
+  const cleanupPendingSessions = useCleanupPendingSessions()
+  const isPendingSession = useIsPendingSession()
+
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [ollamaRunning, setOllamaRunning] = useState<boolean | null>(null)
@@ -61,9 +67,9 @@ export function ChatPage() {
     checkOllamaStatus()
   }, [])
 
-  // Create initial session if none exists
+  // Create initial session if none exists OR if current is stale temp
   useEffect(() => {
-    if (!currentSessionId) {
+    if (!currentSessionId || (isPendingSession(currentSessionId) && messages.length === 0)) {
       // Create session with linkedDecisionId if coming from decision page
       if (linkedDecisionId) {
         createNewSession(linkedDecisionId)
@@ -71,7 +77,15 @@ export function ChatPage() {
         createNewSession()
       }
     }
-  }, [currentSessionId, createNewSession, linkedDecisionId])
+  }, [currentSessionId, createNewSession, linkedDecisionId, isPendingSession, messages.length])
+
+  // Cleanup pending sessions when leaving chat page
+  useEffect(() => {
+    return () => {
+      // On unmount, cleanup abandoned pending sessions
+      cleanupPendingSessions()
+    }
+  }, [cleanupPendingSessions])
 
   // Auto-submit pending message when coming from decision page
   useEffect(() => {

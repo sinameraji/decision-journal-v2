@@ -9,6 +9,7 @@ import {
   useCreateNewSession,
   useClearMessages,
   useRefreshSessions,
+  useCleanupPendingSessions,
 } from '@/store'
 import { ChatSessionItem } from './ChatSessionItem'
 
@@ -22,6 +23,7 @@ export function ChatHistorySidebar() {
   const createNewSession = useCreateNewSession()
   const clearMessages = useClearMessages()
   const refreshSessions = useRefreshSessions()
+  const cleanupPendingSessions = useCleanupPendingSessions()
 
   // Load sessions on mount with error handling
   useEffect(() => {
@@ -49,6 +51,9 @@ export function ChatHistorySidebar() {
 
   const handleSelectSession = async (sessionId: string) => {
     if (sessionId === currentSessionId) return // Already active
+
+    // Cleanup any pending sessions when switching
+    cleanupPendingSessions()
 
     await loadMessagesFromSession(sessionId)
     // Scroll to top of chat area

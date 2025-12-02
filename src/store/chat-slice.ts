@@ -11,6 +11,16 @@ const truncateTitle = (text: string, maxLength: number): string => {
   return trimmed.substring(0, maxLength).trim() + '...'
 }
 
+// Utility: Generate temporary session ID
+const generateTempSessionId = (): string => {
+  return `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+}
+
+// Utility: Check if session ID is temporary
+const isTempSessionId = (sessionId: string): boolean => {
+  return sessionId.startsWith('temp-')
+}
+
 // Simplified message interface for in-memory state
 export interface Message {
   id: string
@@ -42,6 +52,7 @@ export interface ChatSlice {
   searchQuery: string
   refreshTimer: NodeJS.Timeout | null
   deletingSessions: Set<string>
+  pendingSessions: Set<string>
   // Model management
   selectedModel: string | null
   availableModels: OllamaModel[]
@@ -58,7 +69,11 @@ export interface ChatSlice {
   clearPendingMessage: () => void
 
   // Session management
+  createPendingSession: (decisionId?: string) => string
   createNewSession: (decisionId?: string) => Promise<string>
+  persistPendingSession: (tempSessionId: string) => Promise<string>
+  cleanupPendingSessions: () => void
+  isPendingSession: (sessionId: string | null) => boolean
   loadMessagesFromSession: (sessionId: string) => Promise<void>
   setCurrentSessionId: (sessionId: string | null) => void
   setLinkedDecision: (decisionId: string | null) => void
@@ -103,6 +118,7 @@ export const createChatSlice: StateCreator<
   searchQuery: '',
   refreshTimer: null as NodeJS.Timeout | null,
   deletingSessions: new Set<string>(),
+  pendingSessions: new Set<string>(),
   // Model management state
   selectedModel: null as string | null,
   availableModels: [] as OllamaModel[],
@@ -144,27 +160,76 @@ export const createChatSlice: StateCreator<
     })
   },
 
+  createPendingSession: (decisionId?: string): string => {
+    // Create temporary session ID
+    const tempSessionId = generateTempSessionId()
+
+    // Add to pending sessions set
+    const pendingSessions = new Set(get().pendingSessions)
+    pendingSessions.add(tempSessionId)
+
+    // Set as current session
+    set({
+      currentSessionId: tempSessionId,
+      linkedDecisionId: decisionId || null,
+      pendingSessions
+    })
+
+    return tempSessionId
+  },
+
   createNewSession: async (decisionId?: string): Promise<string> => {
+    // This is now a wrapper that creates pending session
+    return get().createPendingSession(decisionId)
+  },
+
+  persistPendingSession: async (tempSessionId: string): Promise<string> => {
     try {
+      // Create actual session in database
       const now = Date.now()
       const session: Omit<ChatSession, 'id'> = {
-        decision_id: decisionId || null,
+        decision_id: get().linkedDecisionId || null,
         created_at: now,
         updated_at: now,
-        trigger_type: decisionId ? 'manual' : 'manual',
+        trigger_type: 'manual',
         title: null,
       }
 
       const createdSession = await sqliteService.createChatSession(session)
-      set({ currentSessionId: createdSession.id, linkedDecisionId: decisionId || null })
-      return createdSession.id
+      const persistedId = createdSession.id
+
+      // Remove from pending sessions
+      const pendingSessions = new Set(get().pendingSessions)
+      pendingSessions.delete(tempSessionId)
+
+      // Update current session ID to persisted ID
+      set({
+        currentSessionId: persistedId,
+        pendingSessions
+      })
+
+      return persistedId
     } catch (error) {
-      console.error('Failed to create chat session:', error)
-      // Generate a fallback ID if database fails
-      const fallbackId = `session-${Date.now()}`
-      set({ currentSessionId: fallbackId, linkedDecisionId: decisionId || null })
-      return fallbackId
+      console.error('Failed to persist session:', error)
+      // Keep using temp ID on error
+      throw error
     }
+  },
+
+  cleanupPendingSessions: () => {
+    const currentSessionId = get().currentSessionId
+
+    // Clear all pending sessions except current one
+    if (currentSessionId && isTempSessionId(currentSessionId)) {
+      set({ pendingSessions: new Set([currentSessionId]) })
+    } else {
+      set({ pendingSessions: new Set() })
+    }
+  },
+
+  isPendingSession: (sessionId: string | null): boolean => {
+    if (!sessionId) return false
+    return get().pendingSessions.has(sessionId)
   },
 
   loadMessagesFromSession: async (sessionId: string) => {
@@ -196,30 +261,33 @@ export const createChatSlice: StateCreator<
   },
 
   saveMessageToDb: async (message: Message, contextDecisionIds: string[] = []) => {
-    const sessionId = get().currentSessionId
+    let sessionId = get().currentSessionId
 
-    // Create session if it doesn't exist
+    // If no session, create a pending one
     if (!sessionId) {
       const linkedId = get().linkedDecisionId
-      const newSessionId = await get().createNewSession(linkedId || undefined)
-      if (!newSessionId) {
-        console.error('Failed to create session for saving message')
+      sessionId = get().createPendingSession(linkedId || undefined)
+    }
+
+    // If session is pending (temp ID), persist it first
+    if (isTempSessionId(sessionId)) {
+      try {
+        sessionId = await get().persistPendingSession(sessionId)
+      } catch (error) {
+        console.error('Failed to persist pending session:', error)
         return
       }
     }
 
-    const currentSession = get().currentSessionId
-    if (!currentSession) return
-
     // Check if session is being deleted
-    if (get().deletingSessions.has(currentSession)) {
+    if (get().deletingSessions.has(sessionId)) {
       console.warn('Cannot save message: session is being deleted')
       return
     }
 
     try {
       const chatMessage: Omit<ChatMessage, 'id'> = {
-        session_id: currentSession,
+        session_id: sessionId,
         role: message.role,
         content: message.content,
         created_at: message.timestamp,
@@ -229,7 +297,7 @@ export const createChatSlice: StateCreator<
       await sqliteService.createChatMessage(chatMessage)
 
       // Update session's updated_at timestamp
-      await sqliteService.updateChatSession(currentSession, {
+      await sqliteService.updateChatSession(sessionId, {
         updated_at: Date.now(),
       })
 
@@ -296,6 +364,22 @@ export const createChatSlice: StateCreator<
   deleteSession: async (sessionId: string) => {
     // Check if already deleting
     if (get().deletingSessions.has(sessionId)) return
+
+    // Handle pending sessions (not in database)
+    if (isTempSessionId(sessionId)) {
+      // Remove from pending sessions
+      const pendingSessions = new Set(get().pendingSessions)
+      pendingSessions.delete(sessionId)
+      set({ pendingSessions })
+
+      // If it's the current session, create a new one
+      if (get().currentSessionId === sessionId) {
+        set({ messages: [] })
+        get().createPendingSession()
+      }
+
+      return
+    }
 
     // Mark session as being deleted
     const deletingSessions = new Set(get().deletingSessions)
