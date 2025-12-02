@@ -2,7 +2,7 @@ import type { StateCreator } from 'zustand';
 import { sqliteService } from '@/services/database/sqlite-service';
 import { permissionService } from '@/services/permission-service';
 import { ollamaService } from '@/services/llm/ollama-service';
-import type { PermissionStatus } from '@/types/preferences';
+import type { PermissionStatus, FontSize } from '@/types/preferences';
 
 export interface PreferencesState {
   onboardingCompleted: boolean;
@@ -14,6 +14,7 @@ export interface PreferencesState {
   ollamaSetupCompleted: boolean;
   notificationPermission: PermissionStatus;
   preferencesLoadedFromDatabase: boolean;
+  fontSize: FontSize;
 }
 
 export interface PreferencesActions {
@@ -24,6 +25,7 @@ export interface PreferencesActions {
   dismissVoiceTooltips: () => Promise<void>;
   setOllamaSetupCompleted: (modelName: string) => Promise<void>;
   checkOllamaStatus: () => Promise<boolean>;
+  updateFontSize: (size: FontSize) => Promise<void>;
 }
 
 export type PreferencesSlice = PreferencesState & PreferencesActions;
@@ -39,6 +41,7 @@ export const createPreferencesSlice: StateCreator<PreferencesSlice> = (set, get)
   ollamaSetupCompleted: false,
   notificationPermission: 'prompt',
   preferencesLoadedFromDatabase: false,
+  fontSize: 'base',
 
   // Actions
   loadPreferences: async () => {
@@ -54,6 +57,7 @@ export const createPreferencesSlice: StateCreator<PreferencesSlice> = (set, get)
           notificationPermission: prefs.notification_permission_status,
           showVoiceTooltips: prefs.show_voice_tooltips,
           preferredOllamaModel: prefs.preferred_ollama_model || null,
+          fontSize: prefs.font_size || 'base',
         });
       }
 
@@ -128,5 +132,12 @@ export const createPreferencesSlice: StateCreator<PreferencesSlice> = (set, get)
       set({ ollamaSetupCompleted: false });
       return false;
     }
+  },
+
+  updateFontSize: async (size: FontSize) => {
+    await sqliteService.updateUserPreferences({
+      font_size: size,
+    });
+    set({ fontSize: size });
   },
 });

@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useStore, useUninstallingModels, useUninstallModel } from '@/store';
+import { useStore, useUninstallingModels, useUninstallModel, useFontSize, useSetFontSize, useUpdateFontSize } from '@/store';
 import { ollamaService } from '@/services/llm/ollama-service';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { Settings as SettingsIcon, Moon, Sun, Laptop, CheckCircle2, AlertCircle, Trash2, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, Moon, Sun, Laptop, CheckCircle2, AlertCircle, Trash2, Loader2, Type } from 'lucide-react';
 import { toast } from 'sonner';
+import { FONT_SIZE_CONFIG, type FontSize } from '@/types/preferences';
 
 export function SettingsPage() {
   const theme = useStore((state) => state.theme);
   const setTheme = useStore((state) => state.setTheme);
+  const fontSize = useFontSize();
+  const setFontSize = useSetFontSize();
+  const updateFontSize = useUpdateFontSize();
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isOllamaRunning, setIsOllamaRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +47,22 @@ export function SettingsPage() {
   const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
     setTheme(newTheme);
     toast.success(`Theme changed to ${newTheme}`);
+  };
+
+  const handleFontSizeChange = (value: number[]) => {
+    const sizes: FontSize[] = ['xs', 'sm', 'base', 'lg', 'xl'];
+    const newSize = sizes[value[0]];
+
+    setFontSize(newSize);
+    updateFontSize(newSize);
+
+    const label = FONT_SIZE_CONFIG[newSize].label;
+    toast.success(`Font size changed to ${label}`);
+  };
+
+  const fontSizeToSliderValue = (size: FontSize): number => {
+    const sizes: FontSize[] = ['xs', 'sm', 'base', 'lg', 'xl'];
+    return sizes.indexOf(size);
   };
 
   const handleUninstall = async (modelName: string) => {
@@ -100,6 +121,57 @@ export function SettingsPage() {
                 System
               </Button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Accessibility Settings */}
+      <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Type className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold text-foreground">Accessibility</h2>
+        </div>
+
+        <div className="space-y-6">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="font-size" className="text-sm font-medium text-foreground">
+                Font Size
+              </Label>
+              <span className="text-sm text-muted-foreground">
+                {FONT_SIZE_CONFIG[fontSize].label} ({Math.round(FONT_SIZE_CONFIG[fontSize].scale * 100)}%)
+              </span>
+            </div>
+
+            <Slider
+              id="font-size"
+              min={0}
+              max={4}
+              step={1}
+              value={[fontSizeToSliderValue(fontSize)]}
+              onValueChange={handleFontSizeChange}
+              className="mb-4"
+            />
+
+            <div className="flex justify-between text-xs text-muted-foreground px-1">
+              <span>Extra Small</span>
+              <span>Small</span>
+              <span>Default</span>
+              <span>Large</span>
+              <span>Extra Large</span>
+            </div>
+
+            {/* Preview text */}
+            <div className="mt-4 p-4 bg-muted/30 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">Preview</p>
+              <p className="text-foreground" style={{ fontSize: `${FONT_SIZE_CONFIG[fontSize].scale}rem` }}>
+                The quick brown fox jumps over the lazy dog. This preview shows how your text will appear at the selected font size.
+              </p>
+            </div>
+
+            <p className="text-sm text-muted-foreground mt-3">
+              Adjust the font size to improve readability. Use <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">Cmd/Ctrl +</kbd> and <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">Cmd/Ctrl -</kbd> for quick adjustments.
+            </p>
           </div>
         </div>
       </div>

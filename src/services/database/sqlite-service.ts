@@ -153,6 +153,9 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   -- Ollama Preferences
   preferred_ollama_model TEXT,
 
+  -- Accessibility
+  font_size TEXT DEFAULT 'base' CHECK(font_size IN ('xs', 'sm', 'base', 'lg', 'xl')),
+
   -- Metadata
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
@@ -170,6 +173,52 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
       `;
 
       await this.db.execute(schema);
+
+      // Initialize default user preferences if not exists
+      const now = Date.now();
+      await this.db.execute(`
+        INSERT OR IGNORE INTO user_preferences (
+          id,
+          onboarding_completed_at,
+          onboarding_skipped_steps,
+          microphone_permission_status,
+          microphone_last_checked_at,
+          show_voice_tooltips,
+          notification_permission_status,
+          notification_last_checked_at,
+          preferred_ollama_model,
+          font_size,
+          created_at,
+          updated_at
+        ) VALUES (
+          'singleton',
+          NULL,
+          '[]',
+          'prompt',
+          NULL,
+          1,
+          'prompt',
+          NULL,
+          NULL,
+          'base',
+          ${now},
+          ${now}
+        )
+      `);
+
+      // Migration: Add font_size column if it doesn't exist (for existing databases)
+      try {
+        await this.db.execute(`
+          ALTER TABLE user_preferences
+          ADD COLUMN font_size TEXT DEFAULT 'base'
+          CHECK(font_size IN ('xs', 'sm', 'base', 'lg', 'xl'))
+        `);
+      } catch (migrationError: any) {
+        // Column might already exist, which is fine
+        if (!migrationError.message?.includes('duplicate column')) {
+          console.warn('Font size column migration skipped:', migrationError.message);
+        }
+      }
     } catch (error) {
       console.error('✗ Database initialization failed:', error);
       this.db = null;
@@ -894,7 +943,28 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
   async getUserPreferences(): Promise<UserPreferences | null> {
     if (this.isBrowserMode()) {
       const data = localStorage.getItem('user-preferences');
-      return data ? JSON.parse(data) : null;
+
+      if (!data) {
+        // Initialize default preferences in localStorage
+        const defaultPrefs: UserPreferences = {
+          id: 'singleton',
+          onboarding_completed_at: null,
+          onboarding_skipped_steps: [],
+          microphone_permission_status: 'prompt',
+          microphone_last_checked_at: null,
+          show_voice_tooltips: true,
+          notification_permission_status: 'prompt',
+          notification_last_checked_at: null,
+          preferred_ollama_model: null,
+          font_size: 'base',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        };
+        localStorage.setItem('user-preferences', JSON.stringify(defaultPrefs));
+        return defaultPrefs;
+      }
+
+      return JSON.parse(data);
     }
 
     const db = await this.ensureDB();
@@ -916,6 +986,7 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
       notification_permission_status: row.notification_permission_status,
       notification_last_checked_at: row.notification_last_checked_at,
       preferred_ollama_model: row.preferred_ollama_model || null,
+      font_size: row.font_size || 'base',
       created_at: row.created_at,
       updated_at: row.updated_at,
     };
@@ -939,8 +1010,9 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
         `INSERT INTO user_preferences (
           id, onboarding_completed_at, onboarding_skipped_steps,
           microphone_permission_status, microphone_last_checked_at,
-          show_voice_tooltips, preferred_ollama_model, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          show_voice_tooltips, notification_permission_status, notification_last_checked_at,
+          preferred_ollama_model, font_size, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
         [
           'singleton',
           updates.onboarding_completed_at || null,
@@ -948,7 +1020,10 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
           updates.microphone_permission_status || 'prompt',
           updates.microphone_last_checked_at || null,
           updates.show_voice_tooltips !== undefined ? (updates.show_voice_tooltips ? 1 : 0) : 1,
+          updates.notification_permission_status || 'prompt',
+          updates.notification_last_checked_at || null,
           updates.preferred_ollama_model || null,
+          updates.font_size || 'base',
           now,
           now,
         ]
@@ -992,6 +1067,12 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
       if (updates.preferred_ollama_model !== undefined) {
         setClauses.push(`preferred_ollama_model = $${paramIndex}`);
         params.push(updates.preferred_ollama_model);
+        paramIndex++;
+      }
+
+      if (updates.font_size !== undefined) {
+        setClauses.push(`font_size = $${paramIndex}`);
+        params.push(updates.font_size);
         paramIndex++;
       }
 

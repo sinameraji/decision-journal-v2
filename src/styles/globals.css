@@ -163,6 +163,9 @@
   --shadow-spread: 0px;
   --shadow-opacity: 0.05;
   --shadow-color: #000000;
+
+  /* Font Size Scale for Accessibility */
+  --font-size-scale: 1.0;
 }
 
 /* Dark Mode Colors */
@@ -283,6 +286,10 @@
    ========================================================================== */
 
 @layer base {
+  html {
+    font-size: calc(16px * var(--font-size-scale));
+  }
+
   * {
     border-color: var(--border);
     outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
