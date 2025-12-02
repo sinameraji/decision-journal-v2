@@ -80,7 +80,7 @@ export function TopHeader() {
   };
 
   return (
-    <header className="flex items-center justify-between h-14 px-6 border-b border-border bg-card">
+    <header className="flex items-center justify-between h-14 px-6 border-b border-border bg-background">
       {/* Search bar */}
       <div className="flex-1 max-w-2xl">
         <div className="relative group">
@@ -92,7 +92,7 @@ export function TopHeader() {
             onChange={(e) => setSearchValue(e.target.value)}
             onKeyDown={handleKeyDown}
             className={cn(
-              'pl-10 pr-10',
+              'pl-10 pr-10 bg-background',
               searchValue && 'pr-20' // Extra padding for clear button
             )}
           />

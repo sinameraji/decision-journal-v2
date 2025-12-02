@@ -14,7 +14,6 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { useStore } from "@/store"
 import { getModifierKeySymbol } from "@/utils/keyboard"
 
@@ -96,7 +95,7 @@ export function AppSidebar() {
       </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-3">
-        {!collapsed ? (
+        {!collapsed && (
           <>
             <button
               onClick={openCommandPalette}
@@ -113,16 +112,8 @@ export function AppSidebar() {
                 </kbd>
               </div>
             </button>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-sidebar-foreground/50">Theme</span>
-              <ThemeToggle />
-            </div>
             <p className="text-xs text-sidebar-foreground/50 leading-relaxed">All data stored locally</p>
           </>
-        ) : (
-          <div className="flex justify-center">
-            <ThemeToggle />
-          </div>
         )}
       </div>
     </aside>
