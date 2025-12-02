@@ -156,6 +156,12 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   -- Accessibility
   font_size TEXT DEFAULT 'base' CHECK(font_size IN ('xs', 'sm', 'base', 'lg', 'xl')),
 
+  -- Profile
+  profile_name TEXT,
+  profile_description TEXT,
+  profile_image_path TEXT,
+  profile_context TEXT DEFAULT '[]',
+
   -- Metadata
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
@@ -217,6 +223,39 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
         // Column might already exist, which is fine
         if (!migrationError.message?.includes('duplicate column')) {
           console.warn('Font size column migration skipped:', migrationError.message);
+        }
+      }
+
+      // Migration: Add profile columns if they don't exist (for existing databases)
+      try {
+        await this.db.execute(`ALTER TABLE user_preferences ADD COLUMN profile_name TEXT`);
+      } catch (migrationError: any) {
+        if (!migrationError.message?.includes('duplicate column')) {
+          console.warn('Profile name column migration skipped:', migrationError.message);
+        }
+      }
+
+      try {
+        await this.db.execute(`ALTER TABLE user_preferences ADD COLUMN profile_description TEXT`);
+      } catch (migrationError: any) {
+        if (!migrationError.message?.includes('duplicate column')) {
+          console.warn('Profile description column migration skipped:', migrationError.message);
+        }
+      }
+
+      try {
+        await this.db.execute(`ALTER TABLE user_preferences ADD COLUMN profile_image_path TEXT`);
+      } catch (migrationError: any) {
+        if (!migrationError.message?.includes('duplicate column')) {
+          console.warn('Profile image path column migration skipped:', migrationError.message);
+        }
+      }
+
+      try {
+        await this.db.execute(`ALTER TABLE user_preferences ADD COLUMN profile_context TEXT DEFAULT '[]'`);
+      } catch (migrationError: any) {
+        if (!migrationError.message?.includes('duplicate column')) {
+          console.warn('Profile context column migration skipped:', migrationError.message);
         }
       }
     } catch (error) {
@@ -957,6 +996,10 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
           notification_last_checked_at: null,
           preferred_ollama_model: null,
           font_size: 'base',
+          profile_name: null,
+          profile_description: null,
+          profile_image_path: null,
+          profile_context: [],
           created_at: Date.now(),
           updated_at: Date.now(),
         };
@@ -987,6 +1030,10 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
       notification_last_checked_at: row.notification_last_checked_at,
       preferred_ollama_model: row.preferred_ollama_model || null,
       font_size: row.font_size || 'base',
+      profile_name: row.profile_name || null,
+      profile_description: row.profile_description || null,
+      profile_image_path: row.profile_image_path || null,
+      profile_context: JSON.parse(row.profile_context || '[]'),
       created_at: row.created_at,
       updated_at: row.updated_at,
     };
@@ -1073,6 +1120,30 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
       if (updates.font_size !== undefined) {
         setClauses.push(`font_size = $${paramIndex}`);
         params.push(updates.font_size);
+        paramIndex++;
+      }
+
+      if (updates.profile_name !== undefined) {
+        setClauses.push(`profile_name = $${paramIndex}`);
+        params.push(updates.profile_name);
+        paramIndex++;
+      }
+
+      if (updates.profile_description !== undefined) {
+        setClauses.push(`profile_description = $${paramIndex}`);
+        params.push(updates.profile_description);
+        paramIndex++;
+      }
+
+      if (updates.profile_image_path !== undefined) {
+        setClauses.push(`profile_image_path = $${paramIndex}`);
+        params.push(updates.profile_image_path);
+        paramIndex++;
+      }
+
+      if (updates.profile_context !== undefined) {
+        setClauses.push(`profile_context = $${paramIndex}`);
+        params.push(JSON.stringify(updates.profile_context));
         paramIndex++;
       }
 

@@ -20,7 +20,14 @@
     "notification:allow-show",
     "dialog:default",
     "dialog:allow-save",
+    "dialog:allow-open",
     "fs:default",
-    "fs:allow-write-file"
+    "fs:allow-write-file",
+    "fs:allow-read-file",
+    "fs:allow-exists",
+    "fs:allow-remove",
+    "fs:allow-mkdir",
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-appdata-write-recursive"
   ]
 }

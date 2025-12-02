@@ -10,6 +10,20 @@ export const FONT_SIZE_CONFIG = {
   xl: { label: 'Extra Large', scale: 1.25 },
 } as const;
 
+export interface ProfileContextItem {
+  question: string;
+  answer: string;
+}
+
+export const DEFAULT_PROFILE_QUESTIONS = [
+  "Who are you and what do you do?",
+  "What are some essential context about your decision-making life that you want the AI to know about you?",
+  "What are your key values or principles that guide your decisions?",
+  "What types of decisions do you typically struggle with?",
+  "What external factors or constraints regularly influence your decisions (time, budget, family, etc.)?",
+  "What has been your biggest learning from past decisions?"
+] as const;
+
 export interface UserPreferences {
   id: string;
   onboarding_completed_at: number | null;
@@ -21,6 +35,10 @@ export interface UserPreferences {
   notification_last_checked_at: number | null;
   preferred_ollama_model: string | null;
   font_size: FontSize;
+  profile_name: string | null;
+  profile_description: string | null;
+  profile_image_path: string | null;
+  profile_context: ProfileContextItem[];
   created_at: number;
   updated_at: number;
 }

@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { Settings as SettingsIcon, Moon, Sun, Laptop, CheckCircle2, AlertCircle, Trash2, Loader2, Type } from 'lucide-react';
+import { ExportSettings } from '@/components/settings/ExportSettings';
+import { Moon, Sun, Laptop, CheckCircle2, AlertCircle, Trash2, Loader2, Type, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { FONT_SIZE_CONFIG, type FontSize } from '@/types/preferences';
 
@@ -171,6 +172,15 @@ export function SettingsPage() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Export Settings */}
+      <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Download className="h-5 w-5 text-primary" />
+          <h2 className="font-serif text-xl text-foreground">Export</h2>
+        </div>
+        <ExportSettings />
       </div>
 
       {/* Ollama AI Settings */}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Calendar, Tag, Brain, TrendingUp, Edit2, Trash2, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Calendar, Tag, Brain, TrendingUp, Edit2, Trash2, MessageCircle, Printer } from 'lucide-react'
 import { useStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { ExportDialog } from '@/components/decision/ExportDialog'
 import { format } from 'date-fns'
 import { buildDecisionChatContext } from '@/utils/chat-context-builder'
 
@@ -21,6 +22,7 @@ export function DecisionDetailPage() {
   const decisions = useStore((state) => state.decisions)
   const setPendingMessage = useStore((state) => state.setPendingMessage)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showExportDialog, setShowExportDialog] = useState(false)
 
   // Load decision on mount
   useEffect(() => {
@@ -148,6 +150,15 @@ export function DecisionDetailPage() {
               <MessageCircle className="h-4 w-4" />
               Discuss with AI
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => setShowExportDialog(true)}
+            >
+              <Printer className="h-4 w-4" />
+              Export
+            </Button>
             <Button variant="outline" size="sm" className="gap-2">
               <Edit2 className="h-4 w-4" />
               Edit
@@ -176,6 +187,13 @@ export function DecisionDetailPage() {
         variant="destructive"
         requireConfirmation="DELETE"
         onConfirm={handleDeleteConfirm}
+      />
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        decision={currentDecision}
       />
 
       {/* Tags */}

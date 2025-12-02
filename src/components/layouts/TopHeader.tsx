@@ -3,6 +3,8 @@ import { useNavigate, useLocation, useSearch } from '@tanstack/react-router';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { UserAvatarButton } from '@/components/user-avatar-button';
+import { ProfileEditModal } from '@/components/profile-edit-modal';
 import { useDebounce } from '@/hooks/use-debounce';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +12,7 @@ const SEARCH_DEBOUNCE_MS = 400;
 
 export function TopHeader() {
   const [searchValue, setSearchValue] = useState('');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchValue, SEARCH_DEBOUNCE_MS);
   const location = useLocation();
   const navigate = useNavigate();
@@ -80,39 +83,47 @@ export function TopHeader() {
   };
 
   return (
-    <header className="flex items-center justify-between h-14 px-6 border-b border-border bg-background">
-      {/* Search bar */}
-      <div className="flex-1 max-w-2xl">
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search decisions..."
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className={cn(
-              'pl-10 pr-10 bg-background',
-              searchValue && 'pr-20' // Extra padding for clear button
+    <>
+      <header className="flex items-center justify-between h-14 px-6 border-b border-border bg-background">
+        {/* Search bar */}
+        <div className="flex-1 max-w-2xl">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search decisions..."
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className={cn(
+                'pl-10 pr-10 bg-background',
+                searchValue && 'pr-20' // Extra padding for clear button
+              )}
+            />
+            {searchValue && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
-          />
-          {searchValue && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Clear search"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          </div>
         </div>
-      </div>
 
-      {/* Theme toggle */}
-      <div className="ml-4">
-        <ThemeToggle />
-      </div>
-    </header>
+        {/* Right side: Avatar + Theme toggle */}
+        <div className="flex items-center gap-3 ml-4">
+          <UserAvatarButton onClick={() => setIsProfileModalOpen(true)} />
+          <ThemeToggle />
+        </div>
+      </header>
+
+      <ProfileEditModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
+    </>
   );
 }

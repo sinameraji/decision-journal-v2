@@ -13,7 +13,7 @@ export function ThemeToggle() {
       <button
         onClick={() => setTheme("light")}
         className={cn(
-          "p-1.5 rounded-full transition-all",
+          "p-1.5 rounded-full transition-all cursor-pointer",
           theme === "light" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
         )}
         title="Light mode"
@@ -23,7 +23,7 @@ export function ThemeToggle() {
       <button
         onClick={() => setTheme("dark")}
         className={cn(
-          "p-1.5 rounded-full transition-all",
+          "p-1.5 rounded-full transition-all cursor-pointer",
           theme === "dark" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
         )}
         title="Dark mode"
@@ -33,7 +33,7 @@ export function ThemeToggle() {
       <button
         onClick={() => setTheme("system")}
         className={cn(
-          "p-1.5 rounded-full transition-all",
+          "p-1.5 rounded-full transition-all cursor-pointer",
           theme === "system" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
         )}
         title="System preference"

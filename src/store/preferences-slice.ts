@@ -2,7 +2,9 @@ import type { StateCreator } from 'zustand';
 import { sqliteService } from '@/services/database/sqlite-service';
 import { permissionService } from '@/services/permission-service';
 import { ollamaService } from '@/services/llm/ollama-service';
-import type { PermissionStatus, FontSize } from '@/types/preferences';
+import { fileStorageService } from '@/services/file-storage-service';
+import type { PermissionStatus, FontSize, ProfileContextItem } from '@/types/preferences';
+import type { ProfileFormData } from '@/schemas/profile-form.schema';
 
 export interface PreferencesState {
   onboardingCompleted: boolean;
@@ -15,6 +17,10 @@ export interface PreferencesState {
   notificationPermission: PermissionStatus;
   preferencesLoadedFromDatabase: boolean;
   fontSize: FontSize;
+  profileName: string | null;
+  profileDescription: string | null;
+  profileImagePath: string | null;
+  profileContext: ProfileContextItem[];
 }
 
 export interface PreferencesActions {
@@ -26,6 +32,10 @@ export interface PreferencesActions {
   setOllamaSetupCompleted: (modelName: string) => Promise<void>;
   checkOllamaStatus: () => Promise<boolean>;
   updateFontSize: (size: FontSize) => Promise<void>;
+  updateProfile: (profile: ProfileFormData) => Promise<void>;
+  updateProfileImage: (file: File) => Promise<void>;
+  removeProfileImage: () => Promise<void>;
+  getProfileImageUrl: () => Promise<string | null>;
 }
 
 export type PreferencesSlice = PreferencesState & PreferencesActions;
@@ -42,6 +52,10 @@ export const createPreferencesSlice: StateCreator<PreferencesSlice> = (set, get)
   notificationPermission: 'prompt',
   preferencesLoadedFromDatabase: false,
   fontSize: 'base',
+  profileName: null,
+  profileDescription: null,
+  profileImagePath: null,
+  profileContext: [],
 
   // Actions
   loadPreferences: async () => {
@@ -58,6 +72,10 @@ export const createPreferencesSlice: StateCreator<PreferencesSlice> = (set, get)
           showVoiceTooltips: prefs.show_voice_tooltips,
           preferredOllamaModel: prefs.preferred_ollama_model || null,
           fontSize: prefs.font_size || 'base',
+          profileName: prefs.profile_name || null,
+          profileDescription: prefs.profile_description || null,
+          profileImagePath: prefs.profile_image_path || null,
+          profileContext: prefs.profile_context || [],
         });
       }
 
@@ -139,5 +157,43 @@ export const createPreferencesSlice: StateCreator<PreferencesSlice> = (set, get)
       font_size: size,
     });
     set({ fontSize: size });
+  },
+
+  updateProfile: async (profile: ProfileFormData) => {
+    await sqliteService.updateUserPreferences({
+      profile_name: profile.profile_name || null,
+      profile_description: profile.profile_description || null,
+      profile_context: profile.profile_context || [],
+    });
+    set({
+      profileName: profile.profile_name || null,
+      profileDescription: profile.profile_description || null,
+      profileContext: profile.profile_context || [],
+    });
+  },
+
+  updateProfileImage: async (file: File) => {
+    const filename = await fileStorageService.saveProfileImage(file);
+    await sqliteService.updateUserPreferences({
+      profile_image_path: filename,
+    });
+    set({ profileImagePath: filename });
+  },
+
+  removeProfileImage: async () => {
+    const { profileImagePath } = get();
+    if (profileImagePath) {
+      await fileStorageService.deleteProfileImage(profileImagePath);
+      await sqliteService.updateUserPreferences({
+        profile_image_path: null,
+      });
+      set({ profileImagePath: null });
+    }
+  },
+
+  getProfileImageUrl: async () => {
+    const { profileImagePath } = get();
+    if (!profileImagePath) return null;
+    return fileStorageService.getProfileImageUrl(profileImagePath);
   },
 });

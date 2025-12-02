@@ -1,0 +1,103 @@
+/* Print-specific styles for Decision Journal */
+
+@media print {
+  /* Hide non-printable elements */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Hide navigation, headers, and UI elements */
+  header,
+  nav,
+  .sidebar,
+  .top-header,
+  button:not(.print-include),
+  .command-palette {
+    display: none !important;
+  }
+
+  /* Optimize page layout */
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Optimize page breaks */
+  .card {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Ensure proper colors in print */
+  body {
+    background: white;
+    color: black;
+  }
+
+  /* Theme overrides for print */
+  .print-theme-light {
+    background: #f5f1e6 !important;
+    color: #4a3f35 !important;
+  }
+
+  .print-theme-light .card {
+    background: #fffcf5 !important;
+    border-color: #e2d8c3 !important;
+  }
+
+  .print-theme-dark {
+    background: #2d2621 !important;
+    color: #ece5d8 !important;
+  }
+
+  .print-theme-dark .card {
+    background: #3a322c !important;
+    border-color: #4a4039 !important;
+  }
+
+  /* Ensure images and content are visible */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Optimize font sizes for print */
+  body {
+    font-size: 12pt;
+  }
+
+  h1 {
+    font-size: 24pt;
+  }
+
+  h2 {
+    font-size: 18pt;
+  }
+
+  h3 {
+    font-size: 14pt;
+  }
+
+  /* Remove shadows and transitions for print */
+  * {
+    box-shadow: none !important;
+    transition: none !important;
+  }
+
+  /* Ensure links are visible */
+  a {
+    text-decoration: underline;
+  }
+
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 90%;
+    color: #666;
+  }
+}
