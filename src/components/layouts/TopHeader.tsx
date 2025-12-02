@@ -113,10 +113,10 @@ export function TopHeader() {
           </div>
         </div>
 
-        {/* Right side: Avatar + Theme toggle */}
+        {/* Right side: Theme toggle + Avatar */}
         <div className="flex items-center gap-3 ml-4">
-          <UserAvatarButton onClick={() => setIsProfileModalOpen(true)} />
           <ThemeToggle />
+          <UserAvatarButton onClick={() => setIsProfileModalOpen(true)} />
         </div>
       </header>
 
