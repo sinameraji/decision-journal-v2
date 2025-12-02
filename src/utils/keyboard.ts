@@ -13,7 +13,6 @@ export const NAVIGATION_SHORTCUTS = [
   { number: 4, href: "/analytics", label: "Analytics" },
   { number: 5, href: "/chat", label: "Chat" },
   { number: 6, href: "/settings", label: "Settings" },
-  { number: 7, href: "/search", label: "Search" },
 ] as const
 
 /**

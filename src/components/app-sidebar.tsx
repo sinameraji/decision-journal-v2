@@ -8,7 +8,6 @@ import {
   BarChart3,
   MessageSquare,
   Settings,
-  Search,
   ChevronLeft,
   ChevronRight,
   Command,
@@ -24,7 +23,6 @@ const navItems = [
   { icon: PlusCircle, label: "New Decision", href: "/new" },
   { icon: Clock, label: "Reviews", href: "/reviews" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
-  { icon: Search, label: "Search", href: "/search" },
   { icon: MessageSquare, label: "Chat", href: "/chat" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ]

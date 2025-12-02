@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet } from '@tanstack/react-router'
 import { AppSidebar } from '@/components/app-sidebar'
+import { TopHeader } from '@/components/layouts/TopHeader'
 import { Toaster } from '@/components/ui/sonner'
 import { CommandPalette } from '@/components/command-palette'
 import { AppOnboardingModal } from '@/components/onboarding/AppOnboardingModal'
@@ -58,9 +59,15 @@ export function RootLayout() {
       <AppSidebar />
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-hidden pt-10">
-        <Outlet />
-      </main>
+      <div className="flex-1 flex flex-col overflow-hidden pt-10">
+        {/* Top Header with Search */}
+        <TopHeader />
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-hidden">
+          <Outlet />
+        </main>
+      </div>
 
       {/* Toast Notifications */}
       <Toaster />

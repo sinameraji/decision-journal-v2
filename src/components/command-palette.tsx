@@ -21,7 +21,6 @@ const navigationItems = [
   { icon: PlusCircle, label: "New Decision", href: "/new", shortcut: 2 },
   { icon: Clock, label: "Reviews", href: "/reviews", shortcut: 3 },
   { icon: BarChart3, label: "Analytics", href: "/analytics", shortcut: 4 },
-  { icon: Search, label: "Search", href: "/search", shortcut: 7 },
   { icon: MessageSquare, label: "Chat", href: "/chat", shortcut: 5 },
   { icon: Settings, label: "Settings", href: "/settings", shortcut: 6 },
 ]

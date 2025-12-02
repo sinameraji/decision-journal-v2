@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useStore } from '@/store';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search as SearchIcon, ArrowLeft, X } from 'lucide-react';
+import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
 import { SearchFiltersPanel } from '@/components/search/SearchFiltersPanel';
 import { SearchResultCard } from '@/components/search/SearchResultCard';
 import { SearchResultsEmpty } from '@/components/search/SearchResultsEmpty';
@@ -17,7 +16,6 @@ export function SearchPage() {
   const searchParams = useSearch({ from: '/search' });
   const queryParam = (searchParams as { q?: string }).q || '';
 
-  const [searchInput, setSearchInput] = useState(queryParam);
   const [filters, setFilters] = useState<DecisionFilters>({
     search: queryParam || undefined,
   });
@@ -45,40 +43,10 @@ export function SearchPage() {
     performSearch();
   }, [debouncedFilters, searchDecisions]);
 
-  // Sync URL with search query
+  // Update filters when URL query param changes (browser back/forward)
   useEffect(() => {
-    if (searchInput !== queryParam) {
-      const timer = setTimeout(() => {
-        navigate({
-          to: '/search',
-          search: searchInput ? { q: searchInput } : { q: undefined },
-          replace: true,
-        });
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [searchInput, queryParam, navigate]);
-
-  // Update search input when URL query param changes (browser back/forward)
-  useEffect(() => {
-    setSearchInput(queryParam);
     setFilters((prev) => ({ ...prev, search: queryParam || undefined }));
   }, [queryParam]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFilters((prev) => ({ ...prev, search: searchInput || undefined }));
-  };
-
-  const clearSearch = () => {
-    setSearchInput('');
-    setFilters((prev) => ({ ...prev, search: undefined }));
-    navigate({
-      to: '/search',
-      search: { q: undefined },
-      replace: true,
-    });
-  };
 
   // Check if any filters are active (excluding search)
   const hasActiveFilters = Boolean(
@@ -130,30 +98,6 @@ export function SearchPage() {
 
           {/* Main content */}
           <main className="space-y-6">
-            {/* Search Form */}
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="relative flex-1">
-                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search decisions..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="pl-10 pr-10"
-                />
-                {searchInput && (
-                  <button
-                    type="button"
-                    onClick={clearSearch}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              <Button type="submit">Search</Button>
-            </form>
-
             {/* Results */}
             {isLoading ? (
               <div className="flex items-center justify-center py-16">

@@ -27,7 +27,12 @@ export const useStore = create<Store>()(
         theme: state.theme,
         fontSize: state.fontSize,
         sidebarOpen: state.sidebarOpen,
-        preferences: state.preferences,
+        // Persist preference fields
+        onboardingCompleted: state.onboardingCompleted,
+        microphonePermission: state.microphonePermission,
+        showVoiceTooltips: state.showVoiceTooltips,
+        notificationPermission: state.notificationPermission,
+        preferredOllamaModel: state.preferredOllamaModel,
         selectedModel: state.selectedModel, // Persist selected chat model
         currentSessionId: state.currentSessionId, // Persist current session
       }),
