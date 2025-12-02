@@ -96,6 +96,9 @@ export interface ChatSlice {
   downloadModel: (modelName: string) => Promise<void>
   updateDownloadProgress: (modelName: string, progress: DownloadProgress) => void
   removeDownloadProgress: (modelName: string) => void
+
+  // Cleanup
+  cleanup: () => void
 }
 
 export const createChatSlice: StateCreator<
@@ -211,7 +214,21 @@ export const createChatSlice: StateCreator<
       return persistedId
     } catch (error) {
       console.error('Failed to persist session:', error)
-      // Keep using temp ID on error
+
+      // Update state to reflect failure
+      set({
+        error: 'Failed to create chat session. Please try refreshing the page.',
+        isLoading: false
+      })
+
+      // Clean up the failed temp session and create a new one
+      const pendingSessions = new Set(get().pendingSessions)
+      pendingSessions.delete(tempSessionId)
+      set({ pendingSessions })
+
+      // Create a new pending session to allow user to retry
+      const newTempId = get().createPendingSession(get().linkedDecisionId || undefined)
+
       throw error
     }
   },
@@ -271,8 +288,18 @@ export const createChatSlice: StateCreator<
 
     // If session is pending (temp ID), persist it first
     if (isTempSessionId(sessionId)) {
+      const tempSessionId = sessionId
       try {
         sessionId = await get().persistPendingSession(sessionId)
+
+        // VERIFY the session is still current after async operation
+        if (get().currentSessionId !== sessionId) {
+          console.warn('Session changed during persistence, message may be saved to inactive session:', {
+            savedTo: sessionId,
+            currentSession: get().currentSessionId
+          })
+          // Continue saving but log the potential issue
+        }
       } catch (error) {
         console.error('Failed to persist pending session:', error)
         return
@@ -532,5 +559,13 @@ export const createChatSlice: StateCreator<
     const downloadingModels = new Map(get().downloadingModels)
     downloadingModels.delete(modelName)
     set({ downloadingModels })
+  },
+
+  cleanup: () => {
+    const timer = get().refreshTimer
+    if (timer) {
+      clearTimeout(timer)
+      set({ refreshTimer: null })
+    }
   },
 })

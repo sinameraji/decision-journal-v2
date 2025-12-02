@@ -93,3 +93,6 @@ export const useSetSelectedModel = () => useStore((state) => state.setSelectedMo
 export const useDownloadModel = () => useStore((state) => state.downloadModel)
 export const useUpdateDownloadProgress = () => useStore((state) => state.updateDownloadProgress)
 export const useRemoveDownloadProgress = () => useStore((state) => state.removeDownloadProgress)
+
+// Cleanup actions
+export const useCleanup = () => useStore((state) => state.cleanup)

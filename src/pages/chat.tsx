@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Send, Bot, User, AlertCircle, Loader2 } from 'lucide-react'
 import { ollamaService } from '@/services/llm/ollama-service'
 import type { ChatMessage as OllamaChatMessage } from '@/services/llm/ollama-service'
@@ -23,6 +23,7 @@ import {
   useClearPendingMessage,
   useCleanupPendingSessions,
   useIsPendingSession,
+  useCleanup,
   type Message,
 } from '@/store'
 
@@ -53,6 +54,7 @@ export function ChatPage() {
   // Hooks for pending session cleanup
   const cleanupPendingSessions = useCleanupPendingSessions()
   const isPendingSession = useIsPendingSession()
+  const cleanup = useCleanup()
 
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
@@ -79,13 +81,14 @@ export function ChatPage() {
     }
   }, [currentSessionId, createNewSession, linkedDecisionId, isPendingSession, messages.length])
 
-  // Cleanup pending sessions when leaving chat page
+  // Cleanup pending sessions and timers when leaving chat page
   useEffect(() => {
     return () => {
-      // On unmount, cleanup abandoned pending sessions
+      // On unmount, cleanup abandoned pending sessions and pending timers
       cleanupPendingSessions()
+      cleanup()
     }
-  }, [cleanupPendingSessions])
+  }, [cleanupPendingSessions, cleanup])
 
   // Auto-submit pending message when coming from decision page
   useEffect(() => {
@@ -115,7 +118,7 @@ export function ChatPage() {
       setInput(pendingMessage)
       clearPendingMessage()
     }
-  }, [pendingMessage, autoSubmit, ollamaRunning, isStreaming, currentSessionId, clearPendingMessage])
+  }, [pendingMessage, autoSubmit, ollamaRunning, isStreaming, currentSessionId, clearPendingMessage, handleSend])
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -135,7 +138,7 @@ export function ChatPage() {
     }
   }
 
-  const handleSend = async (messageText?: string) => {
+  const handleSend = useCallback(async (messageText?: string) => {
     const textToSend = messageText || input.trim()
     if (!textToSend || isStreaming || !ollamaRunning) return
 
@@ -251,7 +254,7 @@ export function ChatPage() {
       setIsStreaming(false)
       abortControllerRef.current = null
     }
-  }
+  }, [input, isStreaming, ollamaRunning, addMessage, saveMessageToDb, messages, currentSessionId, generateSessionTitle, linkedDecisionId, selectedModel])
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
