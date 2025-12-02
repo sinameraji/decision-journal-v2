@@ -58,6 +58,7 @@ export interface ChatSlice {
   availableModels: OllamaModel[]
   downloadingModels: Map<string, DownloadProgress>
   isLoadingModels: boolean
+  uninstallingModels: Set<string>
 
   // Actions
   // Message management
@@ -96,6 +97,7 @@ export interface ChatSlice {
   downloadModel: (modelName: string) => Promise<void>
   updateDownloadProgress: (modelName: string, progress: DownloadProgress) => void
   removeDownloadProgress: (modelName: string) => void
+  uninstallModel: (modelName: string) => Promise<void>
 
   // Cleanup
   cleanup: () => void
@@ -127,6 +129,7 @@ export const createChatSlice: StateCreator<
   availableModels: [] as OllamaModel[],
   downloadingModels: new Map<string, DownloadProgress>(),
   isLoadingModels: false,
+  uninstallingModels: new Set<string>(),
 
   // Actions
   addMessage: (message: Message) => {
@@ -558,6 +561,63 @@ export const createChatSlice: StateCreator<
     const downloadingModels = new Map(get().downloadingModels)
     downloadingModels.delete(modelName)
     set({ downloadingModels })
+  },
+
+  uninstallModel: async (modelName: string) => {
+    // Check if already uninstalling
+    if (get().uninstallingModels.has(modelName)) {
+      console.warn('Model is already being uninstalled:', modelName)
+      return
+    }
+
+    const selectedModel = get().selectedModel
+    const availableModels = get().availableModels
+
+    // Prevent uninstalling the last model
+    if (availableModels.length === 1) {
+      toast.error('Cannot uninstall last model', {
+        description: 'You must have at least one model installed.',
+      })
+      return
+    }
+
+    // Add to uninstalling set
+    const uninstallingModels = new Set(get().uninstallingModels)
+    uninstallingModels.add(modelName)
+    set({ uninstallingModels })
+
+    try {
+      // If uninstalling the current model, auto-switch first
+      if (selectedModel === modelName) {
+        const otherModel = availableModels.find((m) => m.name !== modelName)
+        if (otherModel) {
+          await get().setSelectedModel(otherModel.name)
+          toast.info('Switched model', {
+            description: `Now using ${otherModel.name}`,
+          })
+        }
+      }
+
+      // Perform uninstall
+      await ollamaService.deleteModel(modelName)
+
+      // Refresh model list
+      await get().loadAvailableModels()
+
+      toast.success('Model uninstalled', {
+        description: `${modelName} has been removed`,
+      })
+    } catch (error) {
+      console.error('Failed to uninstall model:', error)
+      toast.error('Uninstall failed', {
+        description: (error as Error).message,
+      })
+    } finally {
+      // Remove from uninstalling set
+      const uninstallingModels = new Set(get().uninstallingModels)
+      uninstallingModels.delete(modelName)
+      set({ uninstallingModels })
+    }
   },
 
   cleanup: () => {

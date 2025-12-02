@@ -25,6 +25,7 @@ export const useStore = create<Store>()(
       // Only persist UI preferences, not decisions/chat (those are in SQLite)
       partialize: (state) => ({
         theme: state.theme,
+        fontSize: state.fontSize,
         sidebarOpen: state.sidebarOpen,
         preferences: state.preferences,
         selectedModel: state.selectedModel, // Persist selected chat model
@@ -59,6 +60,7 @@ export const useSelectedModel = () => useStore((state) => state.selectedModel)
 export const useAvailableModels = () => useStore((state) => state.availableModels)
 export const useDownloadingModels = () => useStore((state) => state.downloadingModels)
 export const useIsLoadingModels = () => useStore((state) => state.isLoadingModels)
+export const useUninstallingModels = () => useStore((state) => state.uninstallingModels)
 
 // =============================================================================
 // Chat Actions
@@ -95,6 +97,7 @@ export const useSetSelectedModel = () => useStore((state) => state.setSelectedMo
 export const useDownloadModel = () => useStore((state) => state.downloadModel)
 export const useUpdateDownloadProgress = () => useStore((state) => state.updateDownloadProgress)
 export const useRemoveDownloadProgress = () => useStore((state) => state.removeDownloadProgress)
+export const useUninstallModel = () => useStore((state) => state.uninstallModel)
 
 // Cleanup actions
 export const useCleanup = () => useStore((state) => state.cleanup)
@@ -112,6 +115,7 @@ export const usePreferredOllamaModel = () => useStore((state) => state.preferred
 export const useOllamaSetupCompleted = () => useStore((state) => state.ollamaSetupCompleted)
 export const useNotificationPermission = () => useStore((state) => state.notificationPermission)
 export const usePreferencesLoadedFromDatabase = () => useStore((state) => state.preferencesLoadedFromDatabase)
+export const useFontSize = () => useStore((state) => state.fontSize)
 
 // =============================================================================
 // Preferences Actions
@@ -124,3 +128,12 @@ export const useCheckMicrophonePermission = () => useStore((state) => state.chec
 export const useDismissVoiceTooltips = () => useStore((state) => state.dismissVoiceTooltips)
 export const useSetOllamaSetupCompleted = () => useStore((state) => state.setOllamaSetupCompleted)
 export const useCheckOllamaStatus = () => useStore((state) => state.checkOllamaStatus)
+export const useUpdateFontSize = () => useStore((state) => state.updateFontSize)
+
+// =============================================================================
+// UI Actions
+// =============================================================================
+
+export const useSetFontSize = () => useStore((state) => state.setFontSize)
+export const useIncreaseFontSize = () => useStore((state) => state.increaseFontSize)
+export const useDecreaseFontSize = () => useStore((state) => state.decreaseFontSize)

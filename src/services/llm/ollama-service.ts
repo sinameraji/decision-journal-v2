@@ -309,6 +309,31 @@ Remember: You're having a conversation, not writing an analysis report.`;
   }
 
   /**
+   * Delete/uninstall a model
+   */
+  async deleteModel(modelName: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: modelName,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to delete model: ${response.statusText} - ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Error deleting model:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Format file size for display
    */
   formatSize(bytes: number): string {

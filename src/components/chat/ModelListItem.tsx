@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { Check, Download } from 'lucide-react'
+import { Check, Download, Trash2, Loader2 } from 'lucide-react'
 import { ollamaService } from '@/services/llm/ollama-service'
 import { ModelDownloadProgress } from './ModelDownloadProgress'
 import { type DownloadProgress } from '@/store/chat-slice'
@@ -11,9 +11,11 @@ interface ModelListItemProps {
   isInstalled?: boolean
   isSelected?: boolean
   isDownloading?: boolean
+  isUninstalling?: boolean
   progress?: DownloadProgress
   onSelect?: () => void
   onDownload?: () => void
+  onUninstall?: () => void
 }
 
 export function ModelListItem({
@@ -21,9 +23,11 @@ export function ModelListItem({
   isInstalled = false,
   isSelected = false,
   isDownloading = false,
+  isUninstalling = false,
   progress,
   onSelect,
   onDownload,
+  onUninstall,
 }: ModelListItemProps) {
   // Extract common fields - determine if it's ModelInfo or OllamaModel
   const isModelInfo = 'displayName' in model
@@ -34,27 +38,28 @@ export function ModelListItem({
   // For installed models, use v0 button-style with full card selection
   if (isInstalled) {
     return (
-      <button
-        onClick={onSelect}
+      <div
         className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${
           isSelected
             ? 'bg-primary border-primary text-primary-foreground'
             : 'bg-card border-border hover:border-primary/50 text-foreground'
         }`}
       >
-        {/* Radio indicator */}
-        <div
+        {/* Radio button - clickable */}
+        <button
+          onClick={onSelect}
           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
             isSelected
               ? 'border-primary-foreground bg-primary-foreground'
               : 'border-muted-foreground'
           }`}
+          disabled={isUninstalling}
         >
           {isSelected && <Check className="w-3 h-3 text-primary" />}
-        </div>
+        </button>
 
-        {/* Model info */}
-        <div className="flex-1 text-left">
+        {/* Model info - clickable */}
+        <button onClick={onSelect} className="flex-1 text-left" disabled={isUninstalling}>
           <p className="font-medium">{displayName}</p>
           <p
             className={`text-sm ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
@@ -62,15 +67,38 @@ export function ModelListItem({
             {ollamaService.formatSize(size)}
             {description && ` • ${description}`}
           </p>
-        </div>
+        </button>
 
         {/* Current indicator */}
-        {isSelected && (
+        {isSelected && !isUninstalling && (
           <span className="text-xs font-medium bg-primary-foreground/20 px-2.5 py-1 rounded-full">
             Current
           </span>
         )}
-      </button>
+
+        {/* Uninstall button */}
+        {onUninstall && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              onUninstall()
+            }}
+            disabled={isUninstalling}
+            className={`p-2 h-auto hover:bg-destructive/10 hover:text-destructive ${
+              isSelected ? 'text-primary-foreground/60' : 'text-muted-foreground'
+            }`}
+            title="Uninstall model"
+          >
+            {isUninstalling ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+          </Button>
+        )}
+      </div>
     )
   }
 

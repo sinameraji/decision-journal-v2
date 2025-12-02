@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useStore } from '@/store';
+import { useStore, useUninstallingModels, useUninstallModel } from '@/store';
 import { ollamaService } from '@/services/llm/ollama-service';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Settings as SettingsIcon, Moon, Sun, Laptop, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Settings as SettingsIcon, Moon, Sun, Laptop, CheckCircle2, AlertCircle, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function SettingsPage() {
@@ -12,6 +13,9 @@ export function SettingsPage() {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isOllamaRunning, setIsOllamaRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const uninstallingModels = useUninstallingModels();
+  const uninstallModel = useUninstallModel();
+  const [modelToUninstall, setModelToUninstall] = useState<string | null>(null);
 
   useEffect(() => {
     checkOllamaAndLoadModels();
@@ -40,8 +44,16 @@ export function SettingsPage() {
     toast.success(`Theme changed to ${newTheme}`);
   };
 
+  const handleUninstall = async (modelName: string) => {
+    await uninstallModel(modelName);
+    setModelToUninstall(null);
+    // Reload models after uninstall
+    await checkOllamaAndLoadModels();
+  };
+
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+    <div className="h-full overflow-auto">
+      <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
       <div>
         <h1 className="font-serif text-3xl font-bold text-foreground mb-2 flex items-center gap-2">
@@ -140,18 +152,35 @@ export function SettingsPage() {
                 <p className="text-sm text-muted-foreground">No models installed</p>
               ) : (
                 <ul className="space-y-2">
-                  {availableModels.map((model) => (
-                    <li
-                      key={model}
-                      className="text-sm text-foreground bg-muted/30 rounded px-3 py-2 font-mono"
-                    >
-                      {model}
-                    </li>
-                  ))}
+                  {availableModels.map((model) => {
+                    const isUninstalling = uninstallingModels.has(model);
+                    return (
+                      <li
+                        key={model}
+                        className="flex items-center justify-between text-sm text-foreground bg-muted/30 rounded px-3 py-2"
+                      >
+                        <span className="font-mono">{model}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setModelToUninstall(model)}
+                          disabled={isUninstalling}
+                          className="p-1.5 h-auto hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+                          title="Uninstall model"
+                        >
+                          {isUninstalling ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
               <p className="text-sm text-muted-foreground mt-3">
-                Manage models using the Ollama CLI: <code className="bg-muted rounded px-1">ollama pull model-name</code>
+                Manage models in the Chat screen or using the Ollama CLI
               </p>
             </div>
           </div>
@@ -165,9 +194,21 @@ export function SettingsPage() {
           <p>
             <span className="font-medium text-foreground">Decision Journal v2</span>
           </p>
-          <p>Built with Tauri, React, and TypeScript</p>
           <p>Using the Farnam Street decision-making methodology</p>
         </div>
+      </div>
+
+      {/* Uninstall Confirmation Dialog */}
+      <ConfirmDialog
+        open={modelToUninstall !== null}
+        onOpenChange={(open) => !open && setModelToUninstall(null)}
+        title="Uninstall Model?"
+        description={`Are you sure you want to uninstall "${modelToUninstall}"? This will remove the model from your system.`}
+        confirmText="Uninstall"
+        cancelText="Cancel"
+        onConfirm={() => modelToUninstall && handleUninstall(modelToUninstall)}
+        variant="destructive"
+      />
       </div>
     </div>
   );

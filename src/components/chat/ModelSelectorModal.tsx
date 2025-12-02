@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ModelListItem } from './ModelListItem'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { AlertCircle, ExternalLink, Bot, X } from 'lucide-react'
 import {
   useAvailableModels,
@@ -9,6 +10,8 @@ import {
   useIsLoadingModels,
   useLoadAvailableModels,
   useDownloadModel,
+  useUninstallingModels,
+  useUninstallModel,
 } from '@/store'
 import { RECOMMENDED_MODELS } from '@/constants/ollama-models'
 import { ollamaService } from '@/services/llm/ollama-service'
@@ -32,9 +35,12 @@ export function ModelSelectorModal({
   const isLoadingModels = useIsLoadingModels()
   const loadAvailableModels = useLoadAvailableModels()
   const downloadModel = useDownloadModel()
+  const uninstallingModels = useUninstallingModels()
+  const uninstallModel = useUninstallModel()
 
   const [customModelName, setCustomModelName] = useState('')
   const [ollamaRunning, setOllamaRunning] = useState(true)
+  const [modelToUninstall, setModelToUninstall] = useState<string | null>(null)
 
   // Load models when modal opens
   useEffect(() => {
@@ -61,6 +67,11 @@ export function ModelSelectorModal({
       downloadModel(customModelName.trim())
       setCustomModelName('')
     }
+  }
+
+  const handleUninstall = async (modelName: string) => {
+    await uninstallModel(modelName)
+    setModelToUninstall(null)
   }
 
   const openOllamaLibrary = async () => {
@@ -152,10 +163,12 @@ export function ModelSelectorModal({
                     model={model}
                     isInstalled
                     isSelected={model.name === currentModel}
+                    isUninstalling={uninstallingModels.has(model.name)}
                     onSelect={() => {
                       onModelSelect(model.name)
                       onClose()
                     }}
+                    onUninstall={() => setModelToUninstall(model.name)}
                   />
                 ))}
               </div>
@@ -254,6 +267,22 @@ export function ModelSelectorModal({
           </p>
         </div>
       </div>
+
+      {/* Uninstall Confirmation Dialog */}
+      <ConfirmDialog
+        open={modelToUninstall !== null}
+        onOpenChange={(open) => !open && setModelToUninstall(null)}
+        title="Uninstall Model?"
+        description={
+          modelToUninstall === currentModel
+            ? `You are uninstalling the currently selected model "${modelToUninstall}". The app will automatically switch to another model first.`
+            : `Are you sure you want to uninstall "${modelToUninstall}"? This will remove the model from your system.`
+        }
+        confirmText="Uninstall"
+        cancelText="Cancel"
+        onConfirm={() => modelToUninstall && handleUninstall(modelToUninstall)}
+        variant="destructive"
+      />
     </div>
   )
 }
