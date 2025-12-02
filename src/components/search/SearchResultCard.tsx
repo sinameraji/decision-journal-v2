@@ -47,13 +47,13 @@ export function SearchResultCard({ decision, query, matchedFields }: SearchResul
       >
         {/* Matched Fields Badges */}
         {matchedFields.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="flex flex-wrap items-center gap-1.5 mb-3">
             <span className="text-xs text-muted-foreground">Matched in:</span>
             {matchedFields.map((field) => (
               <Badge
                 key={field}
                 variant="outline"
-                className="text-xs font-normal border-accent/30 text-accent"
+                className="text-xs font-medium bg-accent/10 text-accent-foreground border-accent/50"
               >
                 {field}
               </Badge>
@@ -101,7 +101,7 @@ export function SearchResultCard({ decision, query, matchedFields }: SearchResul
             )}
             <div className="flex items-center gap-1.5">
               {decision.tags.slice(0, 3).map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs font-normal">
+                <Badge key={tag} variant="secondary" className="text-xs font-medium bg-secondary/80 text-secondary-foreground border border-border/50">
                   {tag}
                 </Badge>
               ))}
