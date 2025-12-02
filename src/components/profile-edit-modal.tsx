@@ -6,6 +6,7 @@ import { useStore } from '@/store';
 import { toast } from 'sonner';
 import { DEFAULT_PROFILE_QUESTIONS } from '@/types/preferences';
 import type { ProfileContextItem } from '@/types/preferences';
+import { ImageCropModal } from '@/components/image-crop-modal';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize form data when modal opens or profile data changes
@@ -59,15 +62,41 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
 
   if (!isOpen) return null;
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('File selected:', file.name, file.type, file.size);
+
+    // Validate file type only (no size check)
+    if (!file.type.match(/^image\/(jpeg|jpg|png|webp)$/)) {
+      toast.error('Invalid file type. Please upload a JPG, PNG, or WebP image.');
+      return;
+    }
+
+    // Open crop modal
+    console.log('Opening crop modal...');
+    setSelectedFile(file);
+    setCropModalOpen(true);
+
+    // Clear file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
     setIsUploadingImage(true);
+    setCropModalOpen(false);
 
     try {
-      await updateProfileImage(file);
+      // Convert blob to file
+      const croppedFile = new File([croppedBlob], 'profile.jpg', { type: 'image/jpeg' });
+      console.log('Uploading cropped image, size:', croppedFile.size);
+      await updateProfileImage(croppedFile);
+      console.log('Image uploaded, getting URL...');
       const url = await getProfileImageUrl();
+      console.log('Got image URL:', url);
       setImageUrl(url);
       toast.success('Profile picture uploaded successfully');
     } catch (error) {
@@ -75,10 +104,13 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
       toast.error(error instanceof Error ? error.message : 'Failed to upload image');
     } finally {
       setIsUploadingImage(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setSelectedFile(null);
     }
+  };
+
+  const handleCropCancel = () => {
+    setCropModalOpen(false);
+    setSelectedFile(null);
   };
 
   const handleRemoveImage = async () => {
@@ -221,7 +253,7 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
                 </div>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  JPG, PNG or WebP. Max 500KB.
+                  JPG, PNG or WebP. Any size accepted.
                 </p>
               </div>
             </div>
@@ -316,6 +348,14 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
           </Button>
         </div>
       </div>
+
+      {/* Image Crop Modal */}
+      <ImageCropModal
+        isOpen={cropModalOpen}
+        imageFile={selectedFile}
+        onComplete={handleCropComplete}
+        onCancel={handleCropCancel}
+      />
     </div>
   );
 }

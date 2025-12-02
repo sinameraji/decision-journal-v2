@@ -12,12 +12,12 @@ class FileStorageService {
    */
   async getProfileImagesDir(): Promise<string> {
     const appData = await appDataDir();
-    return `${appData}${this.PROFILE_DIR}`;
+    return `${appData}/${this.PROFILE_DIR}`;
   }
 
   /**
-   * Save profile image (resize to 256x256, center crop, save as JPEG)
-   * @param file Image file to save
+   * Save profile image (resize to 256x256, compress as needed, save as JPEG)
+   * @param file Image file to save (any size, will be compressed)
    * @returns Filename of saved image
    */
   async saveProfileImage(file: File): Promise<string> {
@@ -25,19 +25,14 @@ class FileStorageService {
       return this.saveProfileImageBrowser(file);
     }
 
-    // Validate file size (max 500KB)
-    if (file.size > 500 * 1024) {
-      throw new Error('Image file is too large. Maximum size is 500KB.');
-    }
-
-    // Validate file type
+    // Validate file type only (no size check)
     if (!file.type.match(/^image\/(jpeg|jpg|png|webp)$/)) {
       throw new Error('Invalid file type. Please upload a JPG, PNG, or WebP image.');
     }
 
-    // Resize image to 256x256
-    const resizedBlob = await this.resizeImage(file);
-    const arrayBuffer = await resizedBlob.arrayBuffer();
+    // Resize and compress image to 256x256, target 500KB max
+    const compressedBlob = await this.compressImageToTarget(file);
+    const arrayBuffer = await compressedBlob.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
     // Ensure profile images directory exists
@@ -88,7 +83,7 @@ class FileStorageService {
       }
 
       const appData = await appDataDir();
-      const fullPath = `${appData}${this.PROFILE_DIR}/${filename}`;
+      const fullPath = `${appData}/${this.PROFILE_DIR}/${filename}`;
       return convertFileSrc(fullPath);
     } catch (error) {
       console.error('Error getting profile image URL:', error);
@@ -120,11 +115,49 @@ class FileStorageService {
   }
 
   /**
-   * Resize image to 256x256 with center crop
+   * Compress image to target size using progressive quality reduction
    * @param file Image file
+   * @param targetSizeKB Target size in KB (default 500KB)
+   * @returns Compressed image blob
+   */
+  private async compressImageToTarget(file: File, targetSizeKB: number = 500): Promise<Blob> {
+    const MAX_SIZE = targetSizeKB * 1024;
+    const MIN_QUALITY = 0.5;
+
+    // Start with high quality
+    let quality = 0.95;
+    let result = await this.resizeImageWithQuality(file, quality);
+
+    // If already small enough, return
+    if (result.size <= MAX_SIZE) {
+      return result;
+    }
+
+    // Binary search for optimal quality
+    let low = MIN_QUALITY;
+    let high = quality;
+
+    while (high - low > 0.05) {
+      quality = (low + high) / 2;
+      result = await this.resizeImageWithQuality(file, quality);
+
+      if (result.size > MAX_SIZE) {
+        high = quality;
+      } else {
+        low = quality;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Resize image to 256x256 with specific quality
+   * @param file Image file
+   * @param quality JPEG quality (0.0 - 1.0)
    * @returns Resized image blob
    */
-  private async resizeImage(file: File): Promise<Blob> {
+  private async resizeImageWithQuality(file: File, quality: number): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const reader = new FileReader();
@@ -153,7 +186,7 @@ class FileStorageService {
         // Draw image with center crop
         ctx.drawImage(img, x, y, size, size, 0, 0, 256, 256);
 
-        // Convert to blob
+        // Convert to blob with specified quality
         canvas.toBlob(
           (blob) => {
             if (blob) {
@@ -163,7 +196,7 @@ class FileStorageService {
             }
           },
           'image/jpeg',
-          0.85
+          quality
         );
       };
 
@@ -174,21 +207,18 @@ class FileStorageService {
     });
   }
 
+
   /**
    * Browser fallback: Save image as base64 in localStorage
    */
   private async saveProfileImageBrowser(file: File): Promise<string> {
-    // Validate file size (max 500KB)
-    if (file.size > 500 * 1024) {
-      throw new Error('Image file is too large. Maximum size is 500KB.');
-    }
-
-    // Validate file type
+    // Validate file type only (no size check)
     if (!file.type.match(/^image\/(jpeg|jpg|png|webp)$/)) {
       throw new Error('Invalid file type. Please upload a JPG, PNG, or WebP image.');
     }
 
-    const resizedBlob = await this.resizeImage(file);
+    // Compress image to target size
+    const compressedBlob = await this.compressImageToTarget(file);
     const reader = new FileReader();
 
     return new Promise((resolve, reject) => {
@@ -198,7 +228,7 @@ class FileStorageService {
         resolve(this.AVATAR_FILENAME); // Return consistent filename
       };
       reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(resizedBlob);
+      reader.readAsDataURL(compressedBlob);
     });
   }
 }
