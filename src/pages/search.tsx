@@ -62,7 +62,7 @@ export function SearchPage() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
+      <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-6">
           <Button
@@ -78,7 +78,7 @@ export function SearchPage() {
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <SearchIcon className="h-5 w-5 text-primary" />
             </div>
-            <h1 className="font-serif text-3xl font-bold text-foreground">Search</h1>
+            <h1 className="font-serif text-3xl text-foreground mb-2">Search</h1>
           </div>
           <p className="text-muted-foreground">
             Search through your decisions and apply filters

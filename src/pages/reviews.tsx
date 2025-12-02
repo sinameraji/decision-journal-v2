@@ -54,12 +54,12 @@ export function ReviewsPage() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="max-w-6xl mx-auto space-y-6 px-6 py-8">
+      <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-serif text-3xl font-bold text-foreground mb-2">Reviews</h1>
+        <h1 className="font-serif text-3xl text-foreground mb-2">Reviews</h1>
         <p className="text-muted-foreground">
-          Track the outcomes of your decisions to improve future predictions
+          Review past decisions to see how outcomes compared to your expectations
         </p>
       </div>
 
@@ -93,10 +93,10 @@ export function ReviewsPage() {
       {/* Pending Reviews */}
       {pendingReviews.length > 0 ? (
         <div className="bg-card border border-border rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <AlertCircle className="h-6 w-6 text-muted-foreground" />
-            Pending Reviews ({pendingReviews.length})
-          </h2>
+            <h2 className="font-serif text-xl text-foreground">Pending Reviews ({pendingReviews.length})</h2>
+          </div>
 
           <div className="space-y-3">
             {pendingReviews.map((decision) => {
@@ -187,10 +187,10 @@ export function ReviewsPage() {
       {/* Recently Reviewed */}
       {completedReviews.length > 0 && (
         <div className="bg-card border border-border rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-4">
             <CheckCircle className="h-6 w-6 text-muted-foreground" />
-            Recently Reviewed ({completedReviews.length})
-          </h2>
+            <h2 className="font-serif text-xl text-foreground">Recently Reviewed ({completedReviews.length})</h2>
+          </div>
 
           <div className="space-y-3">
             {completedReviews.slice(0, 5).map((decision) => {

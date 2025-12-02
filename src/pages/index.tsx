@@ -20,14 +20,14 @@ export function IndexPage() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-foreground tracking-tight">
+          <h1 className="font-serif text-3xl text-foreground mb-2">
             Your Decisions
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-muted-foreground">
             {decisions.length} {decisions.length === 1 ? 'decision' : 'decisions'} recorded
           </p>
         </div>

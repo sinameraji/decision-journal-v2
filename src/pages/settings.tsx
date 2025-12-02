@@ -77,10 +77,7 @@ export function SettingsPage() {
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-serif text-3xl font-bold text-foreground mb-2 flex items-center gap-2">
-          <SettingsIcon className="h-8 w-8" />
-          Settings
-        </h1>
+        <h1 className="font-serif text-3xl text-foreground mb-2">Settings</h1>
         <p className="text-muted-foreground">
           Configure your Decision Journal preferences
         </p>
@@ -88,7 +85,7 @@ export function SettingsPage() {
 
       {/* Theme Settings */}
       <div className="bg-card border border-border rounded-xl shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Appearance</h2>
+        <h2 className="font-serif text-xl text-foreground mb-4">Appearance</h2>
 
         <div className="space-y-4">
           <div>
@@ -129,7 +126,7 @@ export function SettingsPage() {
       <div className="bg-card border border-border rounded-xl shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <Type className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold text-foreground">Accessibility</h2>
+          <h2 className="font-serif text-xl text-foreground">Accessibility</h2>
         </div>
 
         <div className="space-y-6">
@@ -178,7 +175,7 @@ export function SettingsPage() {
 
       {/* Ollama AI Settings */}
       <div className="bg-card border border-border rounded-xl shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-foreground mb-4">AI Assistant (Ollama)</h2>
+        <h2 className="font-serif text-xl text-foreground mb-4">AI Assistant (Ollama)</h2>
 
         {isLoading ? (
           <div className="text-center py-8">
@@ -261,7 +258,7 @@ export function SettingsPage() {
 
       {/* About Section */}
       <div className="bg-card border border-border rounded-xl shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-foreground mb-4">About</h2>
+        <h2 className="font-serif text-xl text-foreground mb-4">About</h2>
         <div className="text-sm text-muted-foreground space-y-2">
           <p>
             <span className="font-medium text-foreground">Decision Journal v2</span>

@@ -121,7 +121,7 @@ export function DecisionDetailPage() {
 
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <h1 className="font-serif text-3xl font-semibold text-foreground tracking-tight mb-2">
+            <h1 className="font-serif text-3xl text-foreground mb-2">
               {currentDecision.problem_statement}
             </h1>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">

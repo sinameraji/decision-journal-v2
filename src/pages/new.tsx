@@ -151,19 +151,10 @@ export function NewPage() {
       <div className="max-w-4xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-8">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate({ to: '/' })}
-          className="mb-4 -ml-2"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Decisions
-        </Button>
-        <h1 className="text-3xl font-serif font-bold text-foreground tracking-tight mb-2">
+        <h1 className="font-serif text-3xl text-foreground mb-2">
           New Decision
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground">
           Document your decision-making process step by step
         </p>
       </div>

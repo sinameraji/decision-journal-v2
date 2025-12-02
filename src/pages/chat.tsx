@@ -285,10 +285,10 @@ export function ChatPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-serif text-2xl font-semibold text-foreground tracking-tight mb-1">
+            <h1 className="font-serif text-3xl text-foreground mb-2">
               AI Decision Coach
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground">
               Discuss your decisions with an AI assistant powered by Ollama
             </p>
           </div>

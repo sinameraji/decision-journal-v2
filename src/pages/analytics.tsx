@@ -30,7 +30,7 @@ export function AnalyticsPage() {
   if (isLoading) {
     return (
       <div className="h-full overflow-auto">
-        <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="flex items-center justify-center py-12">
           <p className="text-muted-foreground">Loading analytics...</p>
         </div>
@@ -42,10 +42,10 @@ export function AnalyticsPage() {
   if (decisions.length === 0 || !analytics) {
     return (
       <div className="h-full overflow-auto">
-        <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="mb-6">
           <h1 className="font-serif text-3xl text-foreground mb-2">Analytics</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground">
             Track your decision-making patterns and outcomes
           </p>
         </div>
@@ -66,11 +66,11 @@ export function AnalyticsPage() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-serif text-3xl text-foreground mb-2">Analytics</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground">
           Track your decision-making patterns and improve over time
         </p>
       </div>
