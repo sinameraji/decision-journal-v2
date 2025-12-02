@@ -51,7 +51,8 @@ export function ReviewDecisionPage() {
 
   if (!id) {
     return (
-      <div className="max-w-4xl mx-auto py-8 px-6">
+      <div className="h-full overflow-auto">
+        <div className="max-w-4xl mx-auto py-8 px-6">
         <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
           <h2 className="text-xl font-bold text-red-900 dark:text-red-400 mb-2">Invalid Decision</h2>
           <p className="text-red-700 dark:text-red-500 mb-4">No decision ID provided.</p>
@@ -60,13 +61,15 @@ export function ReviewDecisionPage() {
             Back to Decisions
           </Button>
         </div>
+        </div>
       </div>
     );
   }
 
   if (!decision) {
     return (
-      <div className="max-w-4xl mx-auto py-8 px-6">
+      <div className="h-full overflow-auto">
+        <div className="max-w-4xl mx-auto py-8 px-6">
         <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 text-center">
           <h2 className="text-xl font-bold text-yellow-900 dark:text-yellow-400 mb-2">Decision Not Found</h2>
           <p className="text-yellow-700 dark:text-yellow-500 mb-4">
@@ -77,12 +80,14 @@ export function ReviewDecisionPage() {
             Back to Decisions
           </Button>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="py-6 px-6">
+    <div className="h-full overflow-auto">
+      <div className="py-6 px-6">
       <div className="mb-6">
         <Button variant="ghost" onClick={handleCancel}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -95,6 +100,7 @@ export function ReviewDecisionPage() {
         onSubmit={handleSubmit}
         onCancel={handleCancel}
       />
+      </div>
     </div>
   );
 }

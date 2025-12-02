@@ -14,14 +14,16 @@ import {
   Command,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getModifierKeySymbol } from "@/utils/keyboard"
 
 const navigationItems = [
-  { icon: FileText, label: "Decisions", href: "/", shortcut: "D" },
-  { icon: PlusCircle, label: "New Decision", href: "/new", shortcut: "N" },
-  { icon: Clock, label: "Reviews", href: "/reviews", shortcut: "R" },
-  { icon: BarChart3, label: "Analytics", href: "/analytics", shortcut: "A" },
-  { icon: MessageSquare, label: "Chat", href: "/chat", shortcut: "C" },
-  { icon: Settings, label: "Settings", href: "/settings", shortcut: "S" },
+  { icon: FileText, label: "Decisions", href: "/", shortcut: 1 },
+  { icon: PlusCircle, label: "New Decision", href: "/new", shortcut: 2 },
+  { icon: Clock, label: "Reviews", href: "/reviews", shortcut: 3 },
+  { icon: BarChart3, label: "Analytics", href: "/analytics", shortcut: 4 },
+  { icon: Search, label: "Search", href: "/search", shortcut: 7 },
+  { icon: MessageSquare, label: "Chat", href: "/chat", shortcut: 5 },
+  { icon: Settings, label: "Settings", href: "/settings", shortcut: 6 },
 ]
 
 export function CommandPalette() {
@@ -29,6 +31,7 @@ export function CommandPalette() {
   const [search, setSearch] = useState("")
   const [selectedIndex, setSelectedIndex] = useState(0)
   const navigate = useNavigate()
+  const modifierKey = getModifierKeySymbol()
 
   const filteredItems = navigationItems.filter((item) => item.label.toLowerCase().includes(search.toLowerCase()))
 
@@ -149,16 +152,28 @@ export function CommandPalette() {
                       </div>
                       <span className="flex-1 font-sans text-sm">{item.label}</span>
                       <div className="flex items-center gap-2">
-                        <kbd
-                          className={cn(
-                            "h-6 min-w-6 inline-flex items-center justify-center rounded border px-1.5 font-mono text-xs transition-colors",
-                            isSelected
-                              ? "bg-primary/10 border-primary/20 text-foreground"
-                              : "bg-muted border-border text-muted-foreground",
-                          )}
-                        >
-                          {item.shortcut}
-                        </kbd>
+                        <div className="flex items-center gap-1">
+                          <kbd
+                            className={cn(
+                              "h-6 min-w-6 inline-flex items-center justify-center rounded border px-1.5 font-mono text-xs transition-colors",
+                              isSelected
+                                ? "bg-primary/10 border-primary/20 text-foreground"
+                                : "bg-muted border-border text-muted-foreground",
+                            )}
+                          >
+                            {modifierKey}
+                          </kbd>
+                          <kbd
+                            className={cn(
+                              "h-6 min-w-6 inline-flex items-center justify-center rounded border px-1.5 font-mono text-xs transition-colors",
+                              isSelected
+                                ? "bg-primary/10 border-primary/20 text-foreground"
+                                : "bg-muted border-border text-muted-foreground",
+                            )}
+                          >
+                            {item.shortcut}
+                          </kbd>
+                        </div>
                         <ArrowRight
                           className={cn("h-4 w-4 transition-opacity", isSelected ? "opacity-100" : "opacity-0")}
                         />

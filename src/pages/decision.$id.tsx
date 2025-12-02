@@ -55,9 +55,11 @@ export function DecisionDetailPage() {
   // Loading state
   if (isLoading && !currentDecision) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="h-full overflow-auto">
+        <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex items-center justify-center py-12">
           <p className="text-muted-foreground">Loading decision...</p>
+        </div>
         </div>
       </div>
     )
@@ -66,7 +68,8 @@ export function DecisionDetailPage() {
   // Error state
   if (error && !currentDecision) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="h-full overflow-auto">
+        <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
           <p className="text-sm text-destructive">{error}</p>
         </div>
@@ -79,6 +82,7 @@ export function DecisionDetailPage() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Decisions
         </Button>
+        </div>
       </div>
     )
   }
@@ -86,7 +90,8 @@ export function DecisionDetailPage() {
   // No decision found
   if (!currentDecision) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="h-full overflow-auto">
+        <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">Decision not found</p>
           <Button variant="outline" onClick={() => navigate({ to: '/' })}>
@@ -94,12 +99,14 @@ export function DecisionDetailPage() {
             Back to Decisions
           </Button>
         </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="h-full overflow-auto">
+      <div className="max-w-5xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-6">
         <Button
@@ -424,6 +431,7 @@ export function DecisionDetailPage() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   )
 }

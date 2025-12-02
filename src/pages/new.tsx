@@ -147,7 +147,8 @@ export function NewPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
+    <div className="h-full overflow-auto">
+      <div className="max-w-4xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-8">
         <Button
@@ -277,6 +278,7 @@ export function NewPage() {
             <ArrowRight className="h-4 w-4" />
           </Button>
         )}
+      </div>
       </div>
     </div>
   )

@@ -19,7 +19,8 @@ export function IndexPage() {
   }, [loadDecisions])
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="h-full overflow-auto">
+      <div className="max-w-5xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -76,6 +77,7 @@ export function IndexPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }

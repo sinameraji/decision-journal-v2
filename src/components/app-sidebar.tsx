@@ -8,19 +8,23 @@ import {
   BarChart3,
   MessageSquare,
   Settings,
+  Search,
   ChevronLeft,
   ChevronRight,
+  Command,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useStore } from "@/store"
+import { getModifierKeySymbol } from "@/utils/keyboard"
 
 const navItems = [
   { icon: FileText, label: "Decisions", href: "/" },
   { icon: PlusCircle, label: "New Decision", href: "/new" },
   { icon: Clock, label: "Reviews", href: "/reviews" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
+  { icon: Search, label: "Search", href: "/search" },
   { icon: MessageSquare, label: "Chat", href: "/chat" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ]
@@ -30,6 +34,19 @@ export function AppSidebar() {
   const sidebarOpen = useStore((state) => state.sidebarOpen)
   const toggleSidebar = useStore((state) => state.toggleSidebar)
   const collapsed = !sidebarOpen
+  const modifierKey = getModifierKeySymbol()
+
+  // Function to trigger command palette (simulates Cmd/Ctrl+K)
+  const openCommandPalette = () => {
+    const event = new KeyboardEvent("keydown", {
+      key: "k",
+      code: "KeyK",
+      metaKey: modifierKey === "⌘",
+      ctrlKey: modifierKey !== "⌘",
+      bubbles: true,
+    })
+    document.dispatchEvent(event)
+  }
 
   return (
     <aside
@@ -83,6 +100,21 @@ export function AppSidebar() {
       <div className="p-4 border-t border-sidebar-border space-y-3">
         {!collapsed ? (
           <>
+            <button
+              onClick={openCommandPalette}
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors group"
+            >
+              <Command className="h-3 w-3 flex-shrink-0" />
+              <span className="flex-1 text-left">Quick navigation</span>
+              <div className="flex items-center gap-0.5">
+                <kbd className="h-4 min-w-4 inline-flex items-center justify-center rounded border border-sidebar-border bg-sidebar px-1 font-mono text-[10px]">
+                  {modifierKey}
+                </kbd>
+                <kbd className="h-4 min-w-4 inline-flex items-center justify-center rounded border border-sidebar-border bg-sidebar px-1 font-mono text-[10px]">
+                  K
+                </kbd>
+              </div>
+            </button>
             <div className="flex items-center justify-between">
               <span className="text-xs text-sidebar-foreground/50">Theme</span>
               <ThemeToggle />

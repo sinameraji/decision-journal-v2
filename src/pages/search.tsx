@@ -1,192 +1,207 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useStore } from '@/store';
-import { DecisionCard } from '@/components/decision-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Search as SearchIcon, ArrowLeft, X } from 'lucide-react';
+import { SearchFiltersPanel } from '@/components/search/SearchFiltersPanel';
+import { SearchResultCard } from '@/components/search/SearchResultCard';
+import { SearchResultsEmpty } from '@/components/search/SearchResultsEmpty';
+import { useDebounce } from '@/hooks/use-debounce';
+import { getMatchedFields } from '@/utils/search-utils';
+import { FILTER_DEBOUNCE_MS } from '@/constants/search';
+import type { DecisionFilters } from '@/types/decision';
 
 export function SearchPage() {
   const navigate = useNavigate();
   const searchParams = useSearch({ from: '/search' });
   const queryParam = (searchParams as { q?: string }).q || '';
 
-  const [searchQuery, setSearchQuery] = useState(queryParam);
-  const decisions = useStore((state) => state.decisions);
-  const loadDecisions = useStore((state) => state.loadDecisions);
-  const isLoading = useStore((state) => state.isLoading);
-
-  useEffect(() => {
-    loadDecisions();
-  }, [loadDecisions]);
-
-  useEffect(() => {
-    setSearchQuery(queryParam);
-  }, [queryParam]);
-
-  // Filter decisions based on search query
-  const filteredDecisions = decisions.filter((decision) => {
-    if (!searchQuery) return true;
-
-    const query = searchQuery.toLowerCase();
-    return (
-      decision.problem_statement.toLowerCase().includes(query) ||
-      decision.situation.toLowerCase().includes(query) ||
-      decision.expected_outcome.toLowerCase().includes(query) ||
-      decision.tags.some((tag) => tag.toLowerCase().includes(query)) ||
-      decision.alternatives.some(
-        (alt) =>
-          alt.title.toLowerCase().includes(query) ||
-          alt.description?.toLowerCase().includes(query)
-      )
-    );
+  const [searchInput, setSearchInput] = useState(queryParam);
+  const [filters, setFilters] = useState<DecisionFilters>({
+    search: queryParam || undefined,
   });
 
-  // Get unique tags from all decisions
-  const allTags = Array.from(
-    new Set(decisions.flatMap((d) => d.tags))
-  ).sort();
+  const decisions = useStore((state) => state.decisions);
+  const searchDecisions = useStore((state) => state.searchDecisions);
+  const isLoading = useStore((state) => state.isLoading);
+
+  // Debounce filters to prevent excessive queries
+  const debouncedFilters = useDebounce(filters, FILTER_DEBOUNCE_MS);
+
+  // Load all decisions on mount (for filter panel tag extraction)
+  useEffect(() => {
+    const loadInitial = async () => {
+      await useStore.getState().loadDecisions();
+    };
+    loadInitial();
+  }, []);
+
+  // Apply debounced filters to search
+  useEffect(() => {
+    const performSearch = async () => {
+      await searchDecisions(debouncedFilters.search || '', debouncedFilters);
+    };
+    performSearch();
+  }, [debouncedFilters, searchDecisions]);
+
+  // Sync URL with search query
+  useEffect(() => {
+    if (searchInput !== queryParam) {
+      const timer = setTimeout(() => {
+        navigate({
+          to: '/search',
+          search: searchInput ? { q: searchInput } : { q: undefined },
+          replace: true,
+        });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [searchInput, queryParam, navigate]);
+
+  // Update search input when URL query param changes (browser back/forward)
+  useEffect(() => {
+    setSearchInput(queryParam);
+    setFilters((prev) => ({ ...prev, search: queryParam || undefined }));
+  }, [queryParam]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate({
-      to: '/search',
-      search: searchQuery ? { q: searchQuery } : { q: undefined },
-    });
-  };
-
-  const handleTagClick = (tag: string) => {
-    setSearchQuery(tag);
-    navigate({
-      to: '/search',
-      search: { q: tag },
-    });
+    setFilters((prev) => ({ ...prev, search: searchInput || undefined }));
   };
 
   const clearSearch = () => {
-    setSearchQuery('');
+    setSearchInput('');
+    setFilters((prev) => ({ ...prev, search: undefined }));
     navigate({
       to: '/search',
       search: { q: undefined },
+      replace: true,
     });
   };
 
+  // Check if any filters are active (excluding search)
+  const hasActiveFilters = Boolean(
+    filters.search ||
+    filters.tags?.length ||
+    filters.emotional_flags?.length ||
+    filters.date_from ||
+    filters.date_to ||
+    filters.confidence_min !== undefined ||
+    filters.confidence_max !== undefined ||
+    filters.has_outcome !== undefined
+  );
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-      {/* Header */}
-      <div>
-        <Button
-          variant="ghost"
-          onClick={() => navigate({ to: '/' })}
-          className="mb-4 -ml-2"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to All Decisions
-        </Button>
+    <div className="h-full overflow-auto">
+      <div className="container mx-auto px-6 py-8 max-w-7xl">
+        {/* Header */}
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate({ to: '/' })}
+            className="mb-4 -ml-2"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to All Decisions
+          </Button>
 
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <SearchIcon className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <SearchIcon className="h-5 w-5 text-primary" />
+            </div>
+            <h1 className="font-serif text-3xl font-bold text-foreground">Search</h1>
           </div>
-          <h1 className="font-serif text-3xl font-bold text-foreground">Search</h1>
+          <p className="text-muted-foreground">
+            Search through your decisions and apply filters
+          </p>
         </div>
-        <p className="text-muted-foreground">
-          Search through your decisions and filter by tags
-        </p>
+
+        {/* Two-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+          {/* Filters Sidebar */}
+          <aside className="lg:sticky lg:top-6 lg:self-start">
+            <SearchFiltersPanel
+              filters={filters}
+              onChange={setFilters}
+              decisions={decisions}
+            />
+          </aside>
+
+          {/* Main content */}
+          <main className="space-y-6">
+            {/* Search Form */}
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <div className="relative flex-1">
+                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search decisions..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="pl-10 pr-10"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <Button type="submit">Search</Button>
+            </form>
+
+            {/* Results */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <p className="text-muted-foreground">Searching decisions...</p>
+              </div>
+            ) : (
+              <div>
+                {/* Result count */}
+                {decisions.length > 0 && (
+                  <div className="flex items-center justify-between pb-4 border-b border-border mb-6">
+                    <p className="text-muted-foreground">
+                      <span className="font-semibold text-foreground">
+                        {decisions.length}
+                      </span>{' '}
+                      {decisions.length === 1 ? 'result' : 'results'} found
+                      {filters.search && (
+                        <>
+                          {' '}
+                          for <span className="font-semibold text-foreground">"{filters.search}"</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {/* Result cards or empty state */}
+                {decisions.length === 0 ? (
+                  <SearchResultsEmpty hasActiveFilters={hasActiveFilters} />
+                ) : (
+                  <div className="space-y-4">
+                    {decisions.map((decision) => {
+                      const matchedFields = getMatchedFields(decision, filters.search || '');
+                      return (
+                        <SearchResultCard
+                          key={decision.id}
+                          decision={decision}
+                          query={filters.search || ''}
+                          matchedFields={matchedFields}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
+        </div>
       </div>
-
-      {/* Search Form */}
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <div className="relative flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search decisions..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-10"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={clearSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        <Button type="submit">Search</Button>
-      </form>
-
-      {/* Tags */}
-      {allTags.length > 0 && (
-        <div>
-          <h2 className="text-sm font-medium text-foreground mb-3">Filter by tag:</h2>
-          <div className="flex flex-wrap gap-2">
-            {allTags.map((tag) => (
-              <Badge
-                key={tag}
-                variant={searchQuery === tag ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => handleTagClick(tag)}
-              >
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Results */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <p className="text-muted-foreground">Loading decisions...</p>
-        </div>
-      ) : (
-        <div>
-          {/* Result count */}
-          <div className="flex items-center justify-between pb-4 border-b border-border mb-6">
-            <p className="text-muted-foreground">
-              <span className="font-semibold text-foreground">
-                {filteredDecisions.length}
-              </span>{' '}
-              {filteredDecisions.length === 1 ? 'result' : 'results'} found
-              {searchQuery && (
-                <>
-                  {' '}
-                  for <span className="font-semibold text-foreground">"{searchQuery}"</span>
-                </>
-              )}
-            </p>
-          </div>
-
-          {/* Result cards */}
-          {filteredDecisions.length === 0 ? (
-            <div className="bg-muted/30 border border-border rounded-lg p-12 text-center">
-              <SearchIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <h2 className="text-xl font-bold text-foreground mb-2">No results found</h2>
-              <p className="text-muted-foreground mb-4">
-                {searchQuery
-                  ? `We couldn't find any decisions matching "${searchQuery}"`
-                  : 'No decisions yet. Create your first decision to get started.'}
-              </p>
-              {searchQuery && (
-                <Button variant="outline" onClick={clearSearch}>
-                  Clear Search
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredDecisions.map((decision) => (
-                <DecisionCard key={decision.id} decision={decision} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

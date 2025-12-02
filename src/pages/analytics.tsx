@@ -29,9 +29,11 @@ export function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="h-full overflow-auto">
+        <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex items-center justify-center py-12">
           <p className="text-muted-foreground">Loading analytics...</p>
+        </div>
         </div>
       </div>
     )
@@ -39,7 +41,8 @@ export function AnalyticsPage() {
 
   if (decisions.length === 0 || !analytics) {
     return (
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="h-full overflow-auto">
+        <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-6">
           <h1 className="font-serif text-3xl text-foreground mb-2">Analytics</h1>
           <p className="text-sm text-muted-foreground">
@@ -54,6 +57,7 @@ export function AnalyticsPage() {
             Start making decisions to see your analytics
           </p>
         </div>
+        </div>
       </div>
     )
   }
@@ -61,7 +65,8 @@ export function AnalyticsPage() {
   const { overview, emotionalPatterns, tagPatterns } = analytics
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8">
+    <div className="h-full overflow-auto">
+      <div className="max-w-6xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-serif text-3xl text-foreground mb-2">Analytics</h1>
@@ -219,6 +224,7 @@ export function AnalyticsPage() {
           </div>
         </Card>
       )}
+      </div>
     </div>
   )
 }

@@ -53,7 +53,8 @@ export function ReviewsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 px-6 py-8">
+    <div className="h-full overflow-auto">
+      <div className="max-w-6xl mx-auto space-y-6 px-6 py-8">
       {/* Header */}
       <div>
         <h1 className="font-serif text-3xl font-bold text-foreground mb-2">Reviews</h1>
@@ -255,6 +256,7 @@ export function ReviewsPage() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
