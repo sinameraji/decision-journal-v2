@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useExport } from '@/hooks/useExport';
 import { Download, Loader2, FileText, FileDown } from 'lucide-react';
 
@@ -9,7 +9,7 @@ export function ExportSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-serif text-lg text-foreground mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           Export Decisions
         </h3>
 
@@ -20,26 +20,24 @@ export function ExportSettings() {
         <div className="space-y-4">
           {/* Format Selection */}
           <div>
-            <Label htmlFor="format" className="text-sm font-medium text-foreground mb-2 block">
+            <label className="text-sm font-medium text-foreground mb-2 block">
               Export Format
-            </Label>
+            </label>
             <div className="flex gap-3">
               <Button
                 variant={format === 'pdf' ? 'default' : 'outline'}
                 onClick={() => setFormat('pdf')}
                 disabled={isExporting}
-                className="flex items-center gap-2"
               >
-                <FileText className="h-4 w-4" />
+                <FileText className="mr-2 h-4 w-4" />
                 PDF
               </Button>
               <Button
                 variant={format === 'markdown' ? 'default' : 'outline'}
                 onClick={() => setFormat('markdown')}
                 disabled={isExporting}
-                className="flex items-center gap-2"
               >
-                <FileDown className="h-4 w-4" />
+                <FileDown className="mr-2 h-4 w-4" />
                 Markdown
               </Button>
             </div>
@@ -47,21 +45,20 @@ export function ExportSettings() {
 
           {/* Date Range Selection */}
           <div>
-            <Label htmlFor="date-range" className="text-sm font-medium text-foreground mb-2 block">
+            <label htmlFor="date-range" className="text-sm font-medium text-foreground mb-2 block">
               Date Range
-            </Label>
-            <select
-              id="date-range"
-              className="w-full px-3 py-2 bg-card text-foreground border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value as any)}
-              disabled={isExporting}
-            >
-              <option value="month">Past Month</option>
-              <option value="3months">Past 3 Months</option>
-              <option value="year">Past Year</option>
-              <option value="all">All Time</option>
-            </select>
+            </label>
+            <Select value={dateRange} onValueChange={(value: any) => setDateRange(value)} disabled={isExporting}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Past Month</SelectItem>
+                <SelectItem value="3months">Past 3 Months</SelectItem>
+                <SelectItem value="year">Past Year</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Export Button */}
