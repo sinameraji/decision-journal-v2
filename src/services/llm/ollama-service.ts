@@ -52,9 +52,26 @@ class OllamaService {
       const response = await fetch(`${this.baseUrl}/api/tags`, {
         method: 'GET',
       });
-      return response.ok;
+
+      if (response.ok) {
+        console.log('[Ollama] Service detected and running');
+        return true;
+      }
+
+      console.warn('[Ollama] Service responded but not OK:', {
+        status: response.status,
+        statusText: response.statusText
+      });
+      return false;
     } catch (error) {
-      console.error('Ollama not running:', error);
+      // Detailed error logging for debugging
+      if (error instanceof TypeError) {
+        console.error('[Ollama] Network error - service may not be running or CSP blocked:', error.message);
+      } else if (error instanceof DOMException && error.name === 'SecurityError') {
+        console.error('[Ollama] CSP/Security blocked connection to localhost:11434');
+      } else {
+        console.error('[Ollama] Unknown error checking service:', error);
+      }
       return false;
     }
   }
