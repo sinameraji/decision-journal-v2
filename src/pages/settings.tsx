@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useStore, useUninstallingModels, useUninstallModel, useFontSize, useSetFontSize, useUpdateFontSize } from '@/store';
+import { useStore, useUninstallingModels, useUninstallModel, useFontSize, useSetFontSize, useUpdateFontSize, useCheckForUpdates, useIsCheckingForUpdates, useAutoCheckEnabled, useSetAutoCheckEnabled, useUpdateError, useAvailableUpdate } from '@/store';
 import { ollamaService } from '@/services/llm/ollama-service';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { ExportSettings } from '@/components/settings/ExportSettings';
-import { Moon, Sun, Laptop, CheckCircle2, AlertCircle, Trash2, Loader2, Type, Download } from 'lucide-react';
+import { Moon, Sun, Laptop, CheckCircle2, AlertCircle, Trash2, Loader2, Type, Download, RefreshCw, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { FONT_SIZE_CONFIG, type FontSize } from '@/types/preferences';
+import { getVersion } from '@tauri-apps/api/app';
 
 export function SettingsPage() {
   const theme = useStore((state) => state.theme);
@@ -22,9 +24,19 @@ export function SettingsPage() {
   const uninstallingModels = useUninstallingModels();
   const uninstallModel = useUninstallModel();
   const [modelToUninstall, setModelToUninstall] = useState<string | null>(null);
+  const [appVersion, setAppVersion] = useState<string>('');
+
+  // Update-related state
+  const checkForUpdates = useCheckForUpdates();
+  const isCheckingForUpdates = useIsCheckingForUpdates();
+  const autoCheckEnabled = useAutoCheckEnabled();
+  const setAutoCheckEnabled = useSetAutoCheckEnabled();
+  const updateError = useUpdateError();
+  const availableUpdate = useAvailableUpdate();
 
   useEffect(() => {
     checkOllamaAndLoadModels();
+    getVersion().then(setAppVersion);
   }, []);
 
   const checkOllamaAndLoadModels = async () => {
@@ -71,6 +83,33 @@ export function SettingsPage() {
     setModelToUninstall(null);
     // Reload models after uninstall
     await checkOllamaAndLoadModels();
+  };
+
+  const handleManualUpdateCheck = async () => {
+    await checkForUpdates(true);
+
+    // Show feedback
+    if (updateError === 'NO_UPDATE_AVAILABLE') {
+      toast.success('You\'re up to date!', {
+        description: 'You have the latest version installed.',
+      });
+    } else if (updateError && updateError !== 'NO_UPDATE_AVAILABLE') {
+      toast.error('Update check failed', {
+        description: updateError,
+      });
+    } else if (availableUpdate) {
+      // Dialog will show automatically via UpdateDialog component
+      toast.info('Update available!', {
+        description: `Version ${availableUpdate.version} is ready to install.`,
+      });
+    }
+  };
+
+  const handleAutoCheckToggle = async (checked: boolean) => {
+    await setAutoCheckEnabled(checked);
+    toast.success(
+      checked ? 'Automatic updates enabled' : 'Automatic updates disabled'
+    );
   };
 
   return (
@@ -266,12 +305,70 @@ export function SettingsPage() {
         )}
       </div>
 
+      {/* Updates Section */}
+      <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <RefreshCw className="h-5 w-5 text-primary" />
+          <h2 className="font-serif text-xl text-foreground">Updates</h2>
+        </div>
+
+        <div className="space-y-4">
+          {/* Auto-check toggle */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="auto-check" className="text-sm font-medium text-foreground">
+                Automatic Update Checks
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Check for updates daily while the app is running
+              </p>
+            </div>
+            <Switch
+              id="auto-check"
+              checked={autoCheckEnabled}
+              onCheckedChange={handleAutoCheckToggle}
+            />
+          </div>
+
+          {/* Manual check button */}
+          <div className="pt-2">
+            <Button
+              variant="outline"
+              onClick={handleManualUpdateCheck}
+              disabled={isCheckingForUpdates}
+              className="w-full sm:w-auto gap-2"
+            >
+              {isCheckingForUpdates ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Checking for Updates...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  Check for Updates
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Info text */}
+          <div className="flex items-start gap-2 p-3 bg-muted/30 rounded-lg border border-border">
+            <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-muted-foreground">
+              When an update is available, you'll be notified with the option to install immediately or postpone.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* About Section */}
       <div className="bg-card border border-border rounded-xl shadow-sm p-6">
         <h2 className="font-serif text-xl text-foreground mb-4">About</h2>
         <div className="text-sm text-muted-foreground space-y-2">
           <p>
-            <span className="font-medium text-foreground">Decision Journal v2</span>
+            <span className="font-medium text-foreground">Decision Journal</span>
+            {appVersion && <span className="ml-2 font-mono text-xs">v{appVersion}</span>}
           </p>
           <p>Using the Farnam Street decision-making methodology</p>
         </div>

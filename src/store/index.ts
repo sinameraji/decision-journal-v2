@@ -4,12 +4,13 @@ import { createDecisionsSlice, type DecisionsSlice } from './decisions-slice'
 import { createUISlice, type UISlice } from './ui-slice'
 import { createChatSlice, type ChatSlice, type Message } from './chat-slice'
 import { createPreferencesSlice, type PreferencesSlice } from './preferences-slice'
+import { createUpdaterSlice, type UpdaterSlice } from './updater-slice'
 
 // Re-export types for convenience
 export type { Message }
 
 // Combined store type
-export type Store = DecisionsSlice & UISlice & ChatSlice & PreferencesSlice
+export type Store = DecisionsSlice & UISlice & ChatSlice & PreferencesSlice & UpdaterSlice
 
 // Create the store with all slices
 export const useStore = create<Store>()(
@@ -19,6 +20,7 @@ export const useStore = create<Store>()(
       ...createUISlice(...a),
       ...createChatSlice(...a),
       ...createPreferencesSlice(...a),
+      ...createUpdaterSlice(...a),
     }),
     {
       name: 'decision-journal-storage',
@@ -35,6 +37,9 @@ export const useStore = create<Store>()(
         preferredOllamaModel: state.preferredOllamaModel,
         selectedModel: state.selectedModel, // Persist selected chat model
         currentSessionId: state.currentSessionId, // Persist current session
+        // Persist updater preferences
+        autoCheckEnabled: state.autoCheckEnabled,
+        lastUpdateCheck: state.lastUpdateCheck,
       }),
     }
   )
@@ -142,3 +147,25 @@ export const useUpdateFontSize = () => useStore((state) => state.updateFontSize)
 export const useSetFontSize = () => useStore((state) => state.setFontSize)
 export const useIncreaseFontSize = () => useStore((state) => state.increaseFontSize)
 export const useDecreaseFontSize = () => useStore((state) => state.decreaseFontSize)
+
+// =============================================================================
+// Updater Selectors
+// =============================================================================
+
+export const useIsCheckingForUpdates = () => useStore((state) => state.isCheckingForUpdates)
+export const useIsDownloadingUpdate = () => useStore((state) => state.isDownloadingUpdate)
+export const useDownloadProgress = () => useStore((state) => state.downloadProgress)
+export const useAvailableUpdate = () => useStore((state) => state.availableUpdate)
+export const useUpdateError = () => useStore((state) => state.updateError)
+export const useShowUpdateDialog = () => useStore((state) => state.showUpdateDialog)
+export const useAutoCheckEnabled = () => useStore((state) => state.autoCheckEnabled)
+
+// =============================================================================
+// Updater Actions
+// =============================================================================
+
+export const useCheckForUpdates = () => useStore((state) => state.checkForUpdates)
+export const useDownloadAndInstall = () => useStore((state) => state.downloadAndInstall)
+export const useDismissUpdateDialog = () => useStore((state) => state.dismissUpdateDialog)
+export const useScheduleNextCheck = () => useStore((state) => state.scheduleNextCheck)
+export const useSetAutoCheckEnabled = () => useStore((state) => state.setAutoCheckEnabled)

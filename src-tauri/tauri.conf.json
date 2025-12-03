@@ -58,6 +58,17 @@
   "plugins": {
     "shell": {
       "open": true
+    },
+    "updater": {
+      "active": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgzQ0I0QTQ4MUJBMzhFQkUKUldTK2pxTWJTRXJMZzN3ZjVtdjg2SUlaN2Z3S25vY3NkOVc4L0RpK0k0LzJ2dS95Z1E3YzhVc04K",
+      "endpoints": [
+        "https://github.com/sinameraji/decision-journal-redesign/releases/latest/download/latest.json"
+      ],
+      "dialog": false,
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }
