@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { NewWelcomeStep } from './steps/NewWelcomeStep';
 import { OllamaInstallStep } from './steps/OllamaInstallStep';
+import { WhisperModelStep } from './steps/WhisperModelStep';
 import { NewNotificationPermissionStep } from './steps/NewNotificationPermissionStep';
 import { NewVoiceInputStep } from './steps/NewVoiceInputStep';
 import { PrivacyPromiseStep } from './steps/PrivacyPromiseStep';
@@ -14,7 +15,7 @@ interface AppOnboardingModalProps {
   onClose: () => void;
 }
 
-type OnboardingStep = 'welcome' | 'ollama-install' | 'notifications' | 'voice-input' | 'privacy-promise';
+type OnboardingStep = 'welcome' | 'ollama-install' | 'whisper-model' | 'notifications' | 'voice-input' | 'privacy-promise';
 
 export function AppOnboardingModal({ open, onClose }: AppOnboardingModalProps) {
   const [step, setStep] = useState<OnboardingStep>('welcome');
@@ -33,7 +34,15 @@ export function AppOnboardingModal({ open, onClose }: AppOnboardingModalProps) {
         return <NewWelcomeStep onNext={() => setStep('ollama-install')} />;
 
       case 'ollama-install':
-        return <OllamaInstallStep onNext={() => setStep('notifications')} />;
+        return <OllamaInstallStep onNext={() => setStep('whisper-model')} />;
+
+      case 'whisper-model':
+        return (
+          <WhisperModelStep
+            onNext={() => setStep('notifications')}
+            onSkip={() => setStep('notifications')}
+          />
+        );
 
       case 'notifications':
         return (
@@ -60,7 +69,7 @@ export function AppOnboardingModal({ open, onClose }: AppOnboardingModalProps) {
   };
 
   const getCurrentStepNumber = () => {
-    const steps: OnboardingStep[] = ['welcome', 'ollama-install', 'notifications', 'voice-input', 'privacy-promise'];
+    const steps: OnboardingStep[] = ['welcome', 'ollama-install', 'whisper-model', 'notifications', 'voice-input', 'privacy-promise'];
     const currentIndex = steps.indexOf(step);
     return currentIndex + 1;
   };
@@ -78,7 +87,7 @@ export function AppOnboardingModal({ open, onClose }: AppOnboardingModalProps) {
         <div className="pt-4">
           {/* Progress dots */}
           <div className="flex justify-center mb-6">
-            <ProgressDots currentStep={getCurrentStepNumber()} totalSteps={5} />
+            <ProgressDots currentStep={getCurrentStepNumber()} totalSteps={6} />
           </div>
 
           {renderStep()}

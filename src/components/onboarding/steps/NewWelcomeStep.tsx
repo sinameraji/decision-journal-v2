@@ -32,7 +32,7 @@ export function NewWelcomeStep({ onNext }: NewWelcomeStepProps) {
       </Button>
 
       <p className="text-xs text-muted-foreground">
-        1 of 5
+        1 of 6
       </p>
     </div>
   );

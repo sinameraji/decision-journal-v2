@@ -10,10 +10,19 @@ interface OllamaInstallStepProps {
 
 type InstallStatus = 'initial' | 'checking' | 'installing' | 'success' | 'error';
 
+// Required models for the app to function
+const REQUIRED_MODELS = [
+  { name: 'gemma3:1b', purpose: 'chat', size: '~815MB' },
+  { name: 'nomic-embed-text', purpose: 'embeddings', size: '~275MB' }
+];
+
 export function OllamaInstallStep({ onNext }: OllamaInstallStepProps) {
   const [status, setStatus] = useState<InstallStatus>('initial');
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
+  const [currentDownloadModel, setCurrentDownloadModel] = useState<string>('');
+  const [currentDownloadPurpose, setCurrentDownloadPurpose] = useState<string>('');
+  const [currentModelIndex, setCurrentModelIndex] = useState<number>(0);
 
   // Helper to open URLs in both Tauri and browser modes
   const openUrl = async (url: string) => {
@@ -87,17 +96,24 @@ export function OllamaInstallStep({ onNext }: OllamaInstallStepProps) {
         return;
       }
 
-      // Ollama is running, check if we have a model
-      const models = await ollamaService.listModels();
+      // Ollama is running, check which models we have
+      const installedModels = await ollamaService.listModels();
+      const installedNames = installedModels.map(m => m.name);
 
-      if (models.length > 0) {
+      // Check which required models are missing
+      const missingModels = REQUIRED_MODELS.filter(
+        model => !installedNames.includes(model.name)
+      );
+
+      if (missingModels.length === 0) {
+        // All models installed
         setStatus('success');
         setTimeout(() => {
           onNext();
         }, 1500);
       } else {
-        // No models, need to download one
-        await installModel();
+        // Download missing models
+        await installModels(missingModels);
       }
     } catch (err) {
       setStatus('error');
@@ -105,27 +121,38 @@ export function OllamaInstallStep({ onNext }: OllamaInstallStepProps) {
     }
   };
 
-  const installModel = async () => {
+  const installModels = async (modelsToInstall: typeof REQUIRED_MODELS) => {
     setStatus('installing');
     setError(null);
 
     try {
-      await ollamaService.pullModel(
-        'gemma3:1b',
-        (progress) => {
-          setDownloadProgress({
-            current: progress.completed,
-            total: progress.total,
-          });
-        }
-      );
+      // Download each missing model sequentially
+      for (let i = 0; i < modelsToInstall.length; i++) {
+        const model = modelsToInstall[i];
+        setCurrentModelIndex(i);
+        setCurrentDownloadModel(model.name);
+        setCurrentDownloadPurpose(model.purpose);
+
+        // Reset progress for this model
+        setDownloadProgress({ current: 0, total: 0 });
+
+        await ollamaService.pullModel(
+          model.name,
+          (progress) => {
+            setDownloadProgress({
+              current: progress.completed,
+              total: progress.total,
+            });
+          }
+        );
+      }
 
       setStatus('success');
       setTimeout(() => {
         onNext();
       }, 1500);
     } catch (err) {
-      setError((err as Error).message || 'Failed to download AI model. Please try again.');
+      setError((err as Error).message || 'Failed to download AI models. Please try again.');
       setStatus('error');
     }
   };
@@ -157,10 +184,10 @@ export function OllamaInstallStep({ onNext }: OllamaInstallStepProps) {
             <Download className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="text-2xl font-bold text-foreground mb-2">
-            Downloading AI Model
+            Downloading AI Models
           </h3>
           <p className="text-muted-foreground">
-            Installing gemma3:1b (~815MB). This will take a few minutes...
+            Installing {currentDownloadPurpose} model ({currentDownloadModel})...
           </p>
         </div>
 
@@ -186,7 +213,7 @@ export function OllamaInstallStep({ onNext }: OllamaInstallStepProps) {
         </div>
 
         <p className="text-xs text-muted-foreground text-center mt-6">
-          2 of 5
+          2 of 7
         </p>
       </div>
     );
@@ -300,7 +327,7 @@ export function OllamaInstallStep({ onNext }: OllamaInstallStepProps) {
       </div>
 
       <p className="text-xs text-muted-foreground text-center">
-        2 of 5
+        2 of 7
       </p>
     </div>
   );

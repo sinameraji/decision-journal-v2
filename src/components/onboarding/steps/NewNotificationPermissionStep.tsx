@@ -134,7 +134,7 @@ export function NewNotificationPermissionStep({ onNext, onSkip }: NewNotificatio
       </div>
 
       <p className="text-xs text-muted-foreground">
-        3 of 5
+        4 of 6
       </p>
     </div>
   );
