@@ -28,6 +28,7 @@
     "fs:allow-remove",
     "fs:allow-mkdir",
     "fs:allow-appdata-read-recursive",
-    "fs:allow-appdata-write-recursive"
+    "fs:allow-appdata-write-recursive",
+    "updater:default"
   ]
 }

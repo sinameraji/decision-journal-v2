@@ -222,8 +222,13 @@ export function ChatPage() {
         }
       )
 
+      console.log(`RAG search for "${textToSend.substring(0, 50)}..." returned ${searchResults.length} results`)
       if (searchResults.length > 0) {
-        // Load full decision objects
+        console.log('Top result similarity:', searchResults[0].similarity)
+      }
+
+      if (searchResults.length > 0) {
+        // Semantic search found matches
         const similarDecisions = searchResults
           .map((result) => {
             const decision = decisions.find((d) => d.id === result.decisionId)
@@ -233,6 +238,20 @@ export function ChatPage() {
 
         // Build RAG context
         ragContext = buildRAGContext(similarDecisions)
+      } else if (decisions.length > 0) {
+        // Fallback: No semantic matches, show most recent decisions
+        console.log('No semantic matches found, using recency fallback')
+
+        const recentDecisions = decisions
+          .filter((d) => !d.is_archived)
+          .sort((a, b) => b.created_at - a.created_at)
+          .slice(0, 5)
+          .map((decision) => ({
+            decision,
+            similarity: 0.0, // Indicate this is a fallback, not semantic match
+          }))
+
+        ragContext = buildRAGContext(recentDecisions)
       }
     } catch (error) {
       console.warn('RAG search failed, continuing without context:', error)

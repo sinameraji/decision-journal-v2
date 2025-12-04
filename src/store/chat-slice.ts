@@ -24,9 +24,14 @@ const isTempSessionId = (sessionId: string): boolean => {
 // Simplified message interface for in-memory state
 export interface Message {
   id: string
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'tool'
   content: string
   timestamp: number
+  toolExecution?: {
+    toolId: string
+    toolName: string
+    result: any
+  }
 }
 
 export interface DownloadProgress {

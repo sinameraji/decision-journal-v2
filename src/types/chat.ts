@@ -20,10 +20,15 @@ export interface ChatSessionWithMetadata extends ChatSession {
 export interface ChatMessage {
   id: string;
   session_id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   created_at: number;
   context_decisions: string[]; // Decision IDs used as context
+  toolExecution?: {
+    toolId: string;
+    toolName: string;
+    result: any; // ToolResult
+  };
 }
 
 export interface RAGContext {

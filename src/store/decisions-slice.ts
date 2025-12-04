@@ -1,6 +1,7 @@
 import { type StateCreator } from 'zustand'
 import { type Decision } from '@/types/decision'
 import { sqliteService } from '@/services/database/sqlite-service'
+import { embeddingService } from '@/services/rag/embedding-service'
 
 export interface DecisionsSlice {
   // State
@@ -76,6 +77,12 @@ export const createDecisionsSlice: StateCreator<
 
       await sqliteService.createDecision(newDecision)
 
+      // Generate and save embedding (async, non-blocking)
+      embeddingService.generateDecisionEmbedding(newDecision)
+        .then(embedding => sqliteService.saveEmbedding(embedding))
+        .then(() => console.log('✓ Generated embedding for new decision:', newDecision.problem_statement?.substring(0, 50)))
+        .catch(error => console.error('Failed to generate embedding:', error))
+
       // Reload decisions to get fresh data
       const decisions = await sqliteService.getDecisions()
       set({ decisions, currentDecision: newDecision, isLoading: false })
@@ -102,6 +109,18 @@ export const createDecisionsSlice: StateCreator<
       }
 
       await sqliteService.updateDecision(id, updatedDecision)
+
+      // Regenerate embedding if content changed
+      if (updates.problem_statement || updates.situation || updates.actual_outcome || updates.lessons_learned) {
+        // Get the full updated decision to generate embedding
+        const fullDecision = await sqliteService.getDecision(id)
+        if (fullDecision) {
+          embeddingService.generateDecisionEmbedding(fullDecision)
+            .then(embedding => sqliteService.saveEmbedding(embedding))
+            .then(() => console.log('✓ Updated embedding for decision:', fullDecision.problem_statement?.substring(0, 50)))
+            .catch(error => console.error('Failed to update embedding:', error))
+        }
+      }
 
       // Update local state
       const decisions = get().decisions.map(d =>

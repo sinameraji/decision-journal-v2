@@ -169,6 +169,58 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   CHECK (id = 'singleton')
 );
 
+-- RAG: Decision embeddings table
+CREATE TABLE IF NOT EXISTS decision_embeddings (
+    decision_id TEXT PRIMARY KEY,
+    embedding_text TEXT NOT NULL,
+    embedding_vector BLOB NOT NULL,
+    model_name TEXT NOT NULL,
+    embedding_version INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (decision_id) REFERENCES decisions(id) ON DELETE CASCADE
+);
+
+-- RAG: Full-text search index for keyword matching
+CREATE VIRTUAL TABLE IF NOT EXISTS decisions_fts USING fts5(
+    decision_id UNINDEXED,
+    problem_statement,
+    situation,
+    actual_outcome,
+    lessons_learned,
+    tags,
+    content='decisions',
+    content_rowid='rowid',
+    tokenize='porter unicode61'
+);
+
+-- Tool system: Tool execution tracking
+CREATE TABLE IF NOT EXISTS tool_executions (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    tool_id TEXT NOT NULL,
+    tool_name TEXT NOT NULL,
+    inputs TEXT,
+    outputs TEXT,
+    execution_time_ms INTEGER,
+    success INTEGER DEFAULT 1,
+    error_message TEXT,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+);
+
+-- Context management: Conversation summaries
+CREATE TABLE IF NOT EXISTS conversation_summaries (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    summary_text TEXT NOT NULL,
+    message_count INTEGER NOT NULL,
+    start_message_id TEXT NOT NULL,
+    end_message_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_decisions_created ON decisions(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_decisions_tags ON decisions(tags);
 CREATE INDEX IF NOT EXISTS idx_decisions_flags ON decisions(emotional_flags);
@@ -176,9 +228,40 @@ CREATE INDEX IF NOT EXISTS idx_alternatives_decision ON alternatives(decision_id
 CREATE INDEX IF NOT EXISTS idx_reviews_scheduled ON review_schedules(scheduled_date) WHERE is_completed = 0;
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboarding_completed_at);
+CREATE INDEX IF NOT EXISTS idx_embeddings_version ON decision_embeddings(embedding_version);
+CREATE INDEX IF NOT EXISTS idx_embeddings_updated ON decision_embeddings(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tool_executions_session ON tool_executions(session_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tool_executions_tool ON tool_executions(tool_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_summaries_session ON conversation_summaries(session_id, created_at DESC);
       `;
 
       await this.db.execute(schema);
+
+      // FTS5 triggers to keep full-text search in sync with decisions table
+      await this.db.execute(`
+        CREATE TRIGGER IF NOT EXISTS decisions_fts_insert AFTER INSERT ON decisions BEGIN
+          INSERT INTO decisions_fts(rowid, decision_id, problem_statement, situation, actual_outcome, lessons_learned, tags)
+          VALUES (new.rowid, new.id, new.problem_statement, new.situation, new.actual_outcome, new.lessons_learned, new.tags);
+        END;
+      `);
+
+      await this.db.execute(`
+        CREATE TRIGGER IF NOT EXISTS decisions_fts_update AFTER UPDATE ON decisions BEGIN
+          UPDATE decisions_fts
+          SET problem_statement = new.problem_statement,
+              situation = new.situation,
+              actual_outcome = new.actual_outcome,
+              lessons_learned = new.lessons_learned,
+              tags = new.tags
+          WHERE rowid = new.rowid;
+        END;
+      `);
+
+      await this.db.execute(`
+        CREATE TRIGGER IF NOT EXISTS decisions_fts_delete AFTER DELETE ON decisions BEGIN
+          DELETE FROM decisions_fts WHERE rowid = old.rowid;
+        END;
+      `);
 
       // Initialize default user preferences if not exists
       const now = Date.now();
@@ -1215,6 +1298,222 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_completed ON user_preferences(onboardi
    */
   isConnected(): boolean {
     return this.db !== null;
+  }
+
+  // ========================================
+  // RAG: Embedding Methods
+  // ========================================
+
+  /**
+   * Save an embedding vector to the database
+   */
+  async saveEmbedding(embedding: any): Promise<void> {
+    const db = await this.ensureDB();
+
+    // Convert Float32Array to Buffer for BLOB storage
+    const vectorBuffer = Buffer.from(embedding.vector.buffer);
+
+    await db.execute(
+      `INSERT OR REPLACE INTO decision_embeddings (
+        decision_id, embedding_text, embedding_vector, model_name,
+        embedding_version, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        embedding.decisionId,
+        embedding.embeddingText,
+        vectorBuffer,
+        embedding.modelName,
+        embedding.version,
+        embedding.createdAt,
+        embedding.updatedAt,
+      ]
+    );
+  }
+
+  /**
+   * Get an embedding by decision ID
+   */
+  async getEmbedding(decisionId: string): Promise<any | null> {
+    const db = await this.ensureDB();
+
+    const result: any[] = await db.select(
+      'SELECT * FROM decision_embeddings WHERE decision_id = ?',
+      [decisionId]
+    );
+
+    if (result.length === 0) return null;
+
+    const row = result[0];
+
+    // Convert Buffer back to Float32Array
+    const vectorArray = new Float32Array(row.embedding_vector);
+
+    return {
+      decisionId: row.decision_id,
+      embeddingText: row.embedding_text,
+      vector: vectorArray,
+      modelName: row.model_name,
+      version: row.embedding_version,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  /**
+   * Get all embeddings
+   */
+  async getAllEmbeddings(): Promise<any[]> {
+    const db = await this.ensureDB();
+
+    const rows: any[] = await db.select('SELECT * FROM decision_embeddings');
+
+    return rows.map((row) => {
+      const vectorArray = new Float32Array(row.embedding_vector);
+
+      return {
+        decisionId: row.decision_id,
+        embeddingText: row.embedding_text,
+        vector: vectorArray,
+        modelName: row.model_name,
+        version: row.embedding_version,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+    });
+  }
+
+  /**
+   * Delete an embedding
+   */
+  async deleteEmbedding(decisionId: string): Promise<void> {
+    const db = await this.ensureDB();
+    await db.execute('DELETE FROM decision_embeddings WHERE decision_id = ?', [
+      decisionId,
+    ]);
+  }
+
+  /**
+   * Search decisions using FTS5 full-text search
+   * Returns array of decision IDs that match the query
+   */
+  async searchDecisionsFTS(query: string): Promise<string[]> {
+    const db = await this.ensureDB();
+
+    try {
+      const result: any[] = await db.select(
+        `SELECT decision_id FROM decisions_fts WHERE decisions_fts MATCH ?
+         ORDER BY rank LIMIT 20`,
+        [query]
+      );
+
+      return result.map((row) => row.decision_id);
+    } catch (error) {
+      console.error('FTS5 search error:', error);
+      return [];
+    }
+  }
+
+  // ========================================
+  // Tool System Methods
+  // ========================================
+
+  /**
+   * Save a tool execution record
+   */
+  async saveToolExecution(execution: any): Promise<void> {
+    const db = await this.ensureDB();
+
+    await db.execute(
+      `INSERT INTO tool_executions (
+        id, session_id, tool_id, tool_name, inputs, outputs,
+        execution_time_ms, success, error_message, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        execution.id,
+        execution.sessionId,
+        execution.toolId,
+        execution.toolName,
+        JSON.stringify(execution.inputs),
+        JSON.stringify(execution.outputs),
+        execution.outputs.executionTimeMs || 0,
+        execution.success ? 1 : 0,
+        execution.errorMessage || null,
+        execution.createdAt,
+      ]
+    );
+  }
+
+  /**
+   * Get tool executions for a session
+   */
+  async getToolExecutions(sessionId: string): Promise<any[]> {
+    const db = await this.ensureDB();
+
+    const rows: any[] = await db.select(
+      'SELECT * FROM tool_executions WHERE session_id = ? ORDER BY created_at DESC',
+      [sessionId]
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      sessionId: row.session_id,
+      toolId: row.tool_id,
+      toolName: row.tool_name,
+      inputs: JSON.parse(row.inputs || '{}'),
+      outputs: JSON.parse(row.outputs || '{}'),
+      success: Boolean(row.success),
+      errorMessage: row.error_message,
+      createdAt: row.created_at,
+    }));
+  }
+
+  // ========================================
+  // Context Management Methods
+  // ========================================
+
+  /**
+   * Save a conversation summary
+   */
+  async saveConversationSummary(summary: any): Promise<void> {
+    const db = await this.ensureDB();
+
+    await db.execute(
+      `INSERT INTO conversation_summaries (
+        id, session_id, summary_text, message_count,
+        start_message_id, end_message_id, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        summary.id,
+        summary.sessionId,
+        summary.summaryText,
+        summary.messageCount,
+        summary.startMessageId,
+        summary.endMessageId,
+        summary.createdAt,
+      ]
+    );
+  }
+
+  /**
+   * Get conversation summaries for a session
+   */
+  async getConversationSummaries(sessionId: string): Promise<any[]> {
+    const db = await this.ensureDB();
+
+    const rows: any[] = await db.select(
+      'SELECT * FROM conversation_summaries WHERE session_id = ? ORDER BY created_at DESC',
+      [sessionId]
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      sessionId: row.session_id,
+      summaryText: row.summary_text,
+      messageCount: row.message_count,
+      startMessageId: row.start_message_id,
+      endMessageId: row.end_message_id,
+      createdAt: row.created_at,
+    }));
   }
 }
 

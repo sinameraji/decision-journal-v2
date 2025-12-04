@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './print.css';
+@import 'sonner/dist/styles.css';
 
 /* ==========================================================================
    FONTS - Download Required
