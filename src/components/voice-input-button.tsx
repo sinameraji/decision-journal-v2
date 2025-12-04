@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Mic, Square, Loader2 } from "lucide-react"
+import { Mic, Square, Loader2, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { audioRecorderService } from "@/services/audio/audio-recorder-service"
 import { whisperService } from "@/services/transcription/whisper-service"
@@ -20,9 +20,8 @@ export function VoiceInputButton({
   className,
   size = "md"
 }: VoiceInputButtonProps) {
-  const [state, setState] = useState<"idle" | "recording" | "processing" | "confirming">("idle")
+  const [state, setState] = useState<"idle" | "recording" | "processing" | "success">("idle")
   const [recordingTime, setRecordingTime] = useState(0)
-  const [transcript, setTranscript] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
 
   // Recording timer
@@ -81,8 +80,16 @@ export function VoiceInputButton({
       const result = await whisperService.transcribeAudio(blob)
 
       if (result.success && result.text) {
-        setTranscript(result.text)
-        setState("confirming")
+        // Insert immediately into input field
+        onTranscript?.(result.text)
+
+        // Show success indicator briefly
+        setState("success")
+
+        // Auto-dismiss after 1.5 seconds
+        setTimeout(() => {
+          cleanup()
+        }, 1500)
       } else {
         setError("Transcription failed. Please try again.")
         setState("idle")
@@ -94,19 +101,7 @@ export function VoiceInputButton({
     }
   }
 
-  const handleAccept = () => {
-    if (transcript) {
-      onTranscript?.(transcript)
-    }
-    cleanup()
-  }
-
-  const handleDiscard = () => {
-    cleanup()
-  }
-
   const cleanup = () => {
-    setTranscript("")
     setError(null)
     setState("idle")
   }
@@ -181,34 +176,17 @@ export function VoiceInputButton({
     )
   }
 
-  // Confirming state
-  return (
-    <div className={cn("flex flex-col gap-2 max-w-sm", className)}>
-      {/* Transcript preview */}
-      <div className="px-3 py-2 bg-muted/30 rounded-lg border border-border max-h-24 overflow-y-auto">
-        <p className="text-xs text-muted-foreground mb-1">Transcript:</p>
-        <p className="text-sm text-foreground whitespace-pre-wrap">{transcript}</p>
+  // Success state - text inserted into field
+  if (state === "success") {
+    return (
+      <div className={cn("flex items-center gap-2", className)}>
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-950 rounded-full">
+          <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+          <span className="text-xs text-green-600 dark:text-green-400">Inserted</span>
+        </div>
       </div>
+    )
+  }
 
-      {/* Accept/Discard buttons */}
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={handleAccept}
-          className="flex-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors text-sm font-medium"
-          title="Accept transcript"
-        >
-          Accept
-        </button>
-        <button
-          type="button"
-          onClick={handleDiscard}
-          className="flex-1 px-3 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground rounded-md transition-colors border border-border text-sm font-medium"
-          title="Discard"
-        >
-          Discard
-        </button>
-      </div>
-    </div>
-  )
+  return null
 }
