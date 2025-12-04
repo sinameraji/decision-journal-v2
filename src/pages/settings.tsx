@@ -9,11 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { ExportSettings } from '@/components/settings/ExportSettings';
 import { ModelDownloadModal } from '@/components/voice/ModelDownloadModal';
-import { Moon, Sun, Laptop, CheckCircle2, AlertCircle, Trash2, Loader2, Type, Download, RefreshCw, Info, Database, Mic } from 'lucide-react';
+import { Moon, Sun, Laptop, CheckCircle2, AlertCircle, Trash2, Loader2, Type, Download, RefreshCw, Info, Mic } from 'lucide-react';
 import { toast } from 'sonner';
 import { FONT_SIZE_CONFIG, type FontSize } from '@/types/preferences';
 import { getVersion } from '@tauri-apps/api/app';
-import { backfillEmbeddings, isBackfillNeeded } from '@/utils/backfill-embeddings';
 import type { ModelType, ModelStatus } from '@/types/transcription';
 
 export function SettingsPage() {
@@ -38,11 +37,6 @@ export function SettingsPage() {
   const updateError = useUpdateError();
   const availableUpdate = useAvailableUpdate();
 
-  // Decision index state
-  const [isIndexing, setIsIndexing] = useState(false);
-  const [indexingProgress, setIndexingProgress] = useState<string>('');
-  const [needsBackfill, setNeedsBackfill] = useState(false);
-
   // Whisper model state
   const [whisperModelStatus, setWhisperModelStatus] = useState<ModelStatus | null>(null);
   const [isLoadingWhisperStatus, setIsLoadingWhisperStatus] = useState(true);
@@ -52,18 +46,8 @@ export function SettingsPage() {
   useEffect(() => {
     checkOllamaAndLoadModels();
     getVersion().then(setAppVersion);
-    checkBackfillStatus();
     checkWhisperModelStatus();
   }, []);
-
-  const checkBackfillStatus = async () => {
-    try {
-      const needed = await isBackfillNeeded();
-      setNeedsBackfill(needed);
-    } catch (error) {
-      console.error('Failed to check backfill status:', error);
-    }
-  };
 
   const checkOllamaAndLoadModels = async () => {
     setIsLoading(true);
@@ -150,45 +134,6 @@ export function SettingsPage() {
       });
     } finally {
       setIsDeletingModel(false);
-    }
-  };
-
-  const handleRebuildIndex = async () => {
-    if (!isOllamaRunning) {
-      toast.error('Ollama not running', {
-        description: 'Start Ollama to rebuild the decision index.',
-      });
-      return;
-    }
-
-    setIsIndexing(true);
-    setIndexingProgress('Starting...');
-
-    try {
-      const result = await backfillEmbeddings();
-
-      setNeedsBackfill(false);
-
-      if (result.generated === 0 && result.failed === 0) {
-        toast.success('Index up to date', {
-          description: `All ${result.total} decisions already indexed.`,
-        });
-      } else if (result.failed === 0) {
-        toast.success('Index rebuilt successfully', {
-          description: `Indexed ${result.generated} decisions. Chat now has full context!`,
-        });
-      } else {
-        toast.warning('Index rebuilt with errors', {
-          description: `Indexed ${result.generated} decisions, ${result.failed} failed.`,
-        });
-      }
-    } catch (error) {
-      toast.error('Failed to rebuild index', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsIndexing(false);
-      setIndexingProgress('');
     }
   };
 
@@ -421,71 +366,6 @@ export function SettingsPage() {
           <h2 className="font-serif text-xl text-foreground">Export</h2>
         </div>
         <ExportSettings />
-      </div>
-
-      {/* Decision Index Settings */}
-      <div className="bg-card border border-border rounded-xl shadow-sm p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Database className="h-5 w-5 text-primary" />
-          <h2 className="font-serif text-xl text-foreground">Decision Index</h2>
-          {needsBackfill && (
-            <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 rounded-full">
-              Needs Update
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            The decision index powers AI chat by creating searchable embeddings of your decisions.
-            When the index is up to date, the AI can reference your past decisions to provide
-            personalized insights and pattern recognition.
-          </p>
-
-          <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg border border-border">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground mb-1">
-                {needsBackfill ? 'Index Out of Date' : 'Index Up to Date'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {needsBackfill
-                  ? 'Some decisions are not indexed. Rebuild the index to enable full AI context.'
-                  : 'All decisions are indexed. AI chat has access to your full decision history.'}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            onClick={handleRebuildIndex}
-            disabled={isIndexing || !isOllamaRunning}
-            className="w-full"
-          >
-            {isIndexing ? (
-              <>
-                <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                {indexingProgress || 'Rebuilding Index...'}
-              </>
-            ) : (
-              <>
-                <Database className="h-4 w-4 mr-2" />
-                Rebuild Decision Index
-              </>
-            )}
-          </Button>
-
-          {!isOllamaRunning && (
-            <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              Ollama must be running to rebuild the index
-            </p>
-          )}
-
-          {isIndexing && (
-            <p className="text-xs text-muted-foreground">
-              This may take a few minutes depending on the number of decisions...
-            </p>
-          )}
-        </div>
       </div>
 
       {/* Ollama AI Settings */}

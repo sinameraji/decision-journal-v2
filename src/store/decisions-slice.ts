@@ -1,7 +1,7 @@
 import { type StateCreator } from 'zustand'
 import { type Decision } from '@/types/decision'
 import { sqliteService } from '@/services/database/sqlite-service'
-import { embeddingService } from '@/services/rag/embedding-service'
+import { autoEmbeddingService } from '@/services/rag/auto-embedding-service'
 
 export interface DecisionsSlice {
   // State
@@ -77,11 +77,11 @@ export const createDecisionsSlice: StateCreator<
 
       await sqliteService.createDecision(newDecision)
 
-      // Generate and save embedding (async, non-blocking)
-      embeddingService.generateDecisionEmbedding(newDecision)
-        .then(embedding => sqliteService.saveEmbedding(embedding))
-        .then(() => console.log('✓ Generated embedding for new decision:', newDecision.problem_statement?.substring(0, 50)))
-        .catch(error => console.error('Failed to generate embedding:', error))
+      // Generate and save embedding automatically (async, non-blocking)
+      autoEmbeddingService.generateEmbeddingForDecision(newDecision.id).catch(() => {
+        // Errors are handled internally by auto-embedding service
+        // Silent failure with automatic retry
+      })
 
       // Reload decisions to get fresh data
       const decisions = await sqliteService.getDecisions()
@@ -110,16 +110,12 @@ export const createDecisionsSlice: StateCreator<
 
       await sqliteService.updateDecision(id, updatedDecision)
 
-      // Regenerate embedding if content changed
-      if (updates.problem_statement || updates.situation || updates.actual_outcome || updates.lessons_learned) {
-        // Get the full updated decision to generate embedding
-        const fullDecision = await sqliteService.getDecision(id)
-        if (fullDecision) {
-          embeddingService.generateDecisionEmbedding(fullDecision)
-            .then(embedding => sqliteService.saveEmbedding(embedding))
-            .then(() => console.log('✓ Updated embedding for decision:', fullDecision.problem_statement?.substring(0, 50)))
-            .catch(error => console.error('Failed to update embedding:', error))
-        }
+      // Regenerate embedding if content changed (async, non-blocking)
+      if (updates.problem_statement || updates.situation || updates.actual_outcome || updates.tags) {
+        autoEmbeddingService.generateEmbeddingForDecision(id).catch(() => {
+          // Errors are handled internally by auto-embedding service
+          // Silent failure with automatic retry
+        })
       }
 
       // Update local state

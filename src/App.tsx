@@ -5,6 +5,8 @@ import './styles/globals.css'
 import { UpdateDialog } from './components/update-dialog'
 import { useCheckForUpdates, useScheduleNextCheck } from './store'
 import { registerAllTools } from './services/tools'
+import { autoEmbeddingService } from './services/rag/auto-embedding-service'
+import { isDesktop } from './utils/platform'
 
 function App() {
   const checkForUpdates = useCheckForUpdates()
@@ -19,6 +21,17 @@ function App() {
 
     // Schedule recurring daily checks
     scheduleNextCheck()
+
+    // Initialize auto-embedding service on desktop only
+    if (isDesktop()) {
+      // Start background worker for retry queue
+      autoEmbeddingService.startBackgroundWorker()
+
+      // Scan for missing embeddings and queue them
+      autoEmbeddingService.checkForMissingEmbeddings().catch((error) => {
+        console.error('[App] Failed to scan for missing embeddings:', error)
+      })
+    }
   }, [checkForUpdates, scheduleNextCheck])
 
   return (
