@@ -28,23 +28,20 @@ export function DecisionSelectCard({
   const hasOutcome = Boolean(decision.actual_outcome);
 
   return (
-    <button
-      type="button"
+    <div
       onClick={() => !disabled && onToggle(decision.id)}
-      disabled={disabled}
       className={cn(
-        'w-full p-3 border rounded-lg text-left transition-colors',
-        'hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring',
+        'w-full p-3 border rounded-lg text-left transition-colors cursor-pointer',
+        'hover:bg-muted/50',
         selected && 'border-primary bg-primary/5',
-        disabled && 'opacity-50 cursor-not-allowed'
+        disabled && 'opacity-50 cursor-not-allowed pointer-events-none'
       )}
     >
       <div className="flex items-start gap-3">
         <Checkbox
           checked={selected}
-          onCheckedChange={() => !disabled && onToggle(decision.id)}
           disabled={disabled}
-          className="mt-0.5"
+          className="mt-0.5 pointer-events-none"
         />
         <div className="flex-1 min-w-0 space-y-2">
           <p className="font-medium text-sm line-clamp-2">
@@ -80,6 +77,6 @@ export function DecisionSelectCard({
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }

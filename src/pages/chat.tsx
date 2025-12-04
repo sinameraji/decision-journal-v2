@@ -141,11 +141,23 @@ export function ChatPage() {
       // Execute tool
       const result = await toolRegistry.execute(tool.id, context)
 
+      // Build content with proper fallback chain
+      let content: string
+      if (result.markdown) {
+        content = result.markdown
+      } else if (result.data !== undefined && result.data !== null) {
+        content = JSON.stringify(result.data, null, 2)
+      } else if (result.error) {
+        content = `Tool execution failed: ${result.error}`
+      } else {
+        content = 'Tool execution completed'
+      }
+
       // Add tool result message
       const toolMessage: Message = {
         id: crypto.randomUUID(),
         role: 'tool',
-        content: result.markdown || JSON.stringify(result.data, null, 2),
+        content,
         timestamp: Date.now(),
         toolExecution: {
           toolId: tool.id,
