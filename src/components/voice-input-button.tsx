@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Mic, Square, Check, X, Loader2 } from "lucide-react"
+import { Mic, Square, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { audioRecorderService } from "@/services/audio/audio-recorder-service"
 import { whisperService } from "@/services/transcription/whisper-service"
@@ -183,23 +183,32 @@ export function VoiceInputButton({
 
   // Confirming state
   return (
-    <div className={cn("flex items-center gap-1", className)}>
-      <button
-        type="button"
-        onClick={handleAccept}
-        className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors"
-        title="Accept transcript"
-      >
-        <Check className="h-3 w-3" />
-      </button>
-      <button
-        type="button"
-        onClick={handleDiscard}
-        className="p-1.5 bg-muted hover:bg-muted/80 text-muted-foreground rounded-full transition-colors border border-border"
-        title="Discard"
-      >
-        <X className="h-3 w-3" />
-      </button>
+    <div className={cn("flex flex-col gap-2 max-w-sm", className)}>
+      {/* Transcript preview */}
+      <div className="px-3 py-2 bg-muted/30 rounded-lg border border-border max-h-24 overflow-y-auto">
+        <p className="text-xs text-muted-foreground mb-1">Transcript:</p>
+        <p className="text-sm text-foreground whitespace-pre-wrap">{transcript}</p>
+      </div>
+
+      {/* Accept/Discard buttons */}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={handleAccept}
+          className="flex-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors text-sm font-medium"
+          title="Accept transcript"
+        >
+          Accept
+        </button>
+        <button
+          type="button"
+          onClick={handleDiscard}
+          className="flex-1 px-3 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground rounded-md transition-colors border border-border text-sm font-medium"
+          title="Discard"
+        >
+          Discard
+        </button>
+      </div>
     </div>
   )
 }
