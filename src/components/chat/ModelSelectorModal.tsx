@@ -88,8 +88,15 @@ export function ModelSelectorModal({
     }
   }
 
+  // Check if a model is an embedding model
+  const isEmbeddingModel = (modelName: string): boolean => {
+    return modelName.toLowerCase().includes('embed')
+  }
+
   // Filter out installed models from recommendations
   const installedModelNames = new Set(availableModels.map((m) => m.name))
+  // Filter out embedding models from chat selection
+  const chatModels = availableModels.filter((m) => !isEmbeddingModel(m.name))
   const downloadableModels = RECOMMENDED_MODELS.filter(
     (m) => !installedModelNames.has(m.name) && !downloadingModels.has(m.name)
   )
@@ -151,13 +158,13 @@ export function ModelSelectorModal({
               <div className="text-sm text-muted-foreground py-4 text-center">
                 Loading models...
               </div>
-            ) : availableModels.length === 0 ? (
+            ) : chatModels.length === 0 ? (
               <div className="text-sm text-muted-foreground py-4 text-center">
                 No models installed yet. Download one below.
               </div>
             ) : (
               <div className="space-y-2">
-                {availableModels.map((model) => (
+                {chatModels.map((model) => (
                   <ModelListItem
                     key={model.name}
                     model={model}
