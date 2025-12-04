@@ -34,7 +34,7 @@ export function ToolResultCard({ toolName, result }: ToolResultCardProps) {
       }`}
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div className="px-4 py-3 border-b border-border">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             {result.success ? (
@@ -43,10 +43,10 @@ export function ToolResultCard({ toolName, result }: ToolResultCardProps) {
               <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
             )}
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <h3 className="text-sm font-semibold text-foreground">
                 {toolName}
               </h3>
-              <div className="flex items-center gap-3 mt-1 text-xs text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   {formatExecutionTime(result.executionTimeMs)}
@@ -72,17 +72,17 @@ export function ToolResultCard({ toolName, result }: ToolResultCardProps) {
 
       {/* Markdown Summary */}
       {result.success && result.markdown ? (
-        <div className="border-b border-gray-200 dark:border-gray-700">
+        <div className="border-b border-border">
           <button
             onClick={() => setIsMarkdownCollapsed(!isMarkdownCollapsed)}
-            className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-muted transition-colors"
           >
             {isMarkdownCollapsed ? (
-              <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             ) : (
-              <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
             )}
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-foreground">
               Analysis Summary
             </span>
           </button>
@@ -99,20 +99,20 @@ export function ToolResultCard({ toolName, result }: ToolResultCardProps) {
         <div>
           <button
             onClick={() => setIsDataExpanded(!isDataExpanded)}
-            className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-muted transition-colors"
           >
             {isDataExpanded ? (
-              <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             )}
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-foreground">
               Raw Data
             </span>
           </button>
           {isDataExpanded && (
-            <div className="px-4 py-3 bg-gray-100 dark:bg-gray-800">
-              <pre className="text-xs text-gray-800 dark:text-gray-200 overflow-x-auto">
+            <div className="px-4 py-3 bg-muted">
+              <pre className="text-xs text-foreground overflow-x-auto">
                 {JSON.stringify(result.data || {}, null, 2)}
               </pre>
             </div>

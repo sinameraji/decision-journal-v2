@@ -8,7 +8,6 @@ import { ModelSelectorButton } from '@/components/chat/ModelSelectorButton'
 import { ModelSelectorModal } from '@/components/chat/ModelSelectorModal'
 import { VoiceInputButton } from '@/components/voice-input-button'
 import { ToolPalette } from '@/components/chat/ToolPalette'
-import { ToolInputModal } from '@/components/chat/ToolInputModal'
 import { ToolResultCard } from '@/components/chat/ToolResultCard'
 import { toolRegistry } from '@/services/tools/tool-registry'
 import type { ToolDefinition, ToolExecutionContext } from '@/services/tools/tool-types'
@@ -80,10 +79,8 @@ export function ChatPage() {
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // Tool execution state
-  const [selectedTool, setSelectedTool] = useState<ToolDefinition | null>(null)
-  const [toolModalOpen, setToolModalOpen] = useState(false)
   const [isExecutingTool, setIsExecutingTool] = useState(false)
-  const [toolPaletteCollapsed, setToolPaletteCollapsed] = useState(false)
+  const [toolPaletteCollapsed, setToolPaletteCollapsed] = useState(true)
 
   // Get current decision if linked
   const currentDecision = linkedDecisionId
@@ -103,13 +100,8 @@ export function ChatPage() {
     }
   }
 
-  const handleToolSelect = (tool: ToolDefinition) => {
-    setSelectedTool(tool)
-    setToolModalOpen(true)
-  }
-
-  const handleToolExecute = async (userInput: Record<string, unknown>) => {
-    if (!selectedTool || !currentSessionId) return
+  const handleToolExecute = async (tool: ToolDefinition, userInput: Record<string, unknown>) => {
+    if (!currentSessionId) return
 
     setIsExecutingTool(true)
 
@@ -123,7 +115,7 @@ export function ChatPage() {
       }
 
       // Execute tool
-      const result = await toolRegistry.execute(selectedTool.id, context)
+      const result = await toolRegistry.execute(tool.id, context)
 
       // Add tool result message
       const toolMessage: Message = {
@@ -132,8 +124,8 @@ export function ChatPage() {
         content: result.markdown || JSON.stringify(result.data, null, 2),
         timestamp: Date.now(),
         toolExecution: {
-          toolId: selectedTool.id,
-          toolName: selectedTool.name,
+          toolId: tool.id,
+          toolName: tool.name,
           result,
         },
       }
@@ -141,13 +133,9 @@ export function ChatPage() {
       addMessage(toolMessage)
       await saveMessageToDb(toolMessage)
 
-      // Close modal
-      setToolModalOpen(false)
-      setSelectedTool(null)
-
       // Ask LLM to interpret the result
       if (result.success && ollamaRunning) {
-        const interpretationPrompt = `The user just ran the "${selectedTool.name}" tool. Here are the results:\n\n${result.markdown || JSON.stringify(result.data, null, 2)}\n\n${selectedTool.userPromptTemplate.replace('{{markdown}}', result.markdown || '').replace('{{query}}', (userInput.query as string) || '')}`
+        const interpretationPrompt = `The user just ran the "${tool.name}" tool. Here are the results:\n\n${result.markdown || JSON.stringify(result.data, null, 2)}\n\n${tool.userPromptTemplate.replace('{{markdown}}', result.markdown || '').replace('{{query}}', (userInput.query as string) || '')}`
 
         // Send interpretation request to LLM
         setTimeout(() => {
@@ -578,9 +566,10 @@ export function ChatPage() {
           {/* Tool Palette */}
           <ToolPalette
             tools={toolRegistry.list()}
-            onToolSelect={handleToolSelect}
+            onToolExecute={handleToolExecute}
             isCollapsed={toolPaletteCollapsed}
             onToggleCollapse={() => setToolPaletteCollapsed(!toolPaletteCollapsed)}
+            isExecuting={isExecutingTool}
           />
 
           {/* Input Area */}
@@ -637,20 +626,6 @@ export function ChatPage() {
           setModelModalOpen(false)
         }}
       />
-
-      {/* Tool Input Modal */}
-      {selectedTool && (
-        <ToolInputModal
-          tool={selectedTool}
-          isOpen={toolModalOpen}
-          isExecuting={isExecutingTool}
-          onClose={() => {
-            setToolModalOpen(false)
-            setSelectedTool(null)
-          }}
-          onSubmit={handleToolExecute}
-        />
-      )}
     </div>
   )
 }

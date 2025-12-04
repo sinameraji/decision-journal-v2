@@ -141,7 +141,7 @@ export function NewVoiceInputStep({ onNext, onSkip }: NewVoiceInputStepProps) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        4 of 5
+        5 of 6
       </p>
     </div>
   );

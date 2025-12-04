@@ -63,7 +63,7 @@ export function PrivacyPromiseStep({ onComplete }: PrivacyPromiseStepProps) {
       </Button>
 
       <p className="text-xs text-muted-foreground">
-        5 of 5
+        6 of 6
       </p>
     </div>
   );
