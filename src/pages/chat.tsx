@@ -689,13 +689,6 @@ export function ChatPage() {
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <Bot className="h-16 w-16 text-muted-foreground mb-6" />
-                <p className="text-foreground text-lg font-medium mb-2">
-                  Start a conversation
-                </p>
-                <p className="text-muted-foreground mb-8 max-w-md">
-                  Ask me anything about your decisions. I can help identify patterns, blind spots,
-                  and improve your thinking.
-                </p>
 
                 {/* Suggested Prompts */}
                 <div className="grid grid-cols-2 gap-3 w-full max-w-2xl">
