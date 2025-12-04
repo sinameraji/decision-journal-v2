@@ -688,8 +688,6 @@ export function ChatPage() {
           <div className="flex-1 overflow-y-auto p-6">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <Bot className="h-16 w-16 text-muted-foreground mb-6" />
-
                 {/* Suggested Prompts */}
                 <div className="grid grid-cols-2 gap-3 w-full max-w-2xl">
                   {SUGGESTED_PROMPTS.map((prompt, index) => (
