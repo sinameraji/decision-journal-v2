@@ -21,6 +21,8 @@ export interface PreferencesState {
   profileDescription: string | null;
   profileImagePath: string | null;
   profileContext: ProfileContextItem[];
+  whisperModel: 'tiny' | 'base' | null;
+  whisperModelDownloaded: boolean;
 }
 
 export interface PreferencesActions {
@@ -36,6 +38,9 @@ export interface PreferencesActions {
   updateProfileImage: (file: File) => Promise<void>;
   removeProfileImage: () => Promise<void>;
   getProfileImageUrl: () => Promise<string | null>;
+  setWhisperModel: (modelType: 'tiny' | 'base') => void;
+  setWhisperModelDownloaded: (downloaded: boolean) => void;
+  checkWhisperModelStatus: () => Promise<void>;
 }
 
 export type PreferencesSlice = PreferencesState & PreferencesActions;
@@ -56,6 +61,8 @@ export const createPreferencesSlice: StateCreator<PreferencesSlice> = (set, get)
   profileDescription: null,
   profileImagePath: null,
   profileContext: [],
+  whisperModel: null,
+  whisperModelDownloaded: false,
 
   // Actions
   loadPreferences: async () => {
@@ -195,5 +202,28 @@ export const createPreferencesSlice: StateCreator<PreferencesSlice> = (set, get)
     const { profileImagePath } = get();
     if (!profileImagePath) return null;
     return fileStorageService.getProfileImageUrl(profileImagePath);
+  },
+
+  setWhisperModel: (modelType: 'tiny' | 'base') => {
+    set({ whisperModel: modelType });
+  },
+
+  setWhisperModelDownloaded: (downloaded: boolean) => {
+    set({ whisperModelDownloaded: downloaded });
+  },
+
+  checkWhisperModelStatus: async () => {
+    try {
+      const { whisperService } = await import('@/services/transcription/whisper-service');
+      const status = await whisperService.getModelStatus();
+
+      set({
+        whisperModelDownloaded: status.isDownloaded,
+        whisperModel: status.modelType as 'tiny' | 'base' | null,
+      });
+    } catch (error) {
+      console.error('Failed to check Whisper model status:', error);
+      set({ whisperModelDownloaded: false, whisperModel: null });
+    }
   },
 });

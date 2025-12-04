@@ -6,7 +6,17 @@ import { Button } from '@/components/ui/button'
 import { ChatHistorySidebar } from '@/components/chat/ChatHistorySidebar'
 import { ModelSelectorButton } from '@/components/chat/ModelSelectorButton'
 import { ModelSelectorModal } from '@/components/chat/ModelSelectorModal'
-import { VoiceInputButton } from '@/components/chat/VoiceInputButton'
+import { VoiceInputButton } from '@/components/voice-input-button'
+import { ToolPalette } from '@/components/chat/ToolPalette'
+import { ToolInputModal } from '@/components/chat/ToolInputModal'
+import { ToolResultCard } from '@/components/chat/ToolResultCard'
+import { toolRegistry } from '@/services/tools/tool-registry'
+import type { ToolDefinition, ToolExecutionContext } from '@/services/tools/tool-types'
+import { vectorSearchService } from '@/services/rag/vector-search-service'
+import { buildRAGContext } from '@/utils/prompts/context-builder'
+import { buildProfileContext } from '@/utils/prompts/profile-context-prompt'
+import type { UserProfile } from '@/utils/prompts/profile-context-prompt'
+import { promptBuilder } from '@/utils/prompts/prompt-builder'
 import {
   useChatMessages,
   useCurrentSessionId,
@@ -24,6 +34,7 @@ import {
   useCleanupPendingSessions,
   useIsPendingSession,
   useCleanup,
+  useStore,
   type Message,
 } from '@/store'
 
@@ -44,6 +55,10 @@ export function ChatPage() {
   const downloadingModels = useDownloadingModels()
   const generateSessionTitle = useGenerateSessionTitle()
   const createNewSession = useCreateNewSession()
+  const decisions = useStore((state) => state.decisions)
+  const profileName = useStore((state) => state.profileName)
+  const profileDescription = useStore((state) => state.profileDescription)
+  const profileContext = useStore((state) => state.profileContext)
 
   // Hooks for pending message auto-submission
   const pendingMessage = usePendingMessage()
@@ -64,6 +79,17 @@ export function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  // Tool execution state
+  const [selectedTool, setSelectedTool] = useState<ToolDefinition | null>(null)
+  const [toolModalOpen, setToolModalOpen] = useState(false)
+  const [isExecutingTool, setIsExecutingTool] = useState(false)
+  const [toolPaletteCollapsed, setToolPaletteCollapsed] = useState(false)
+
+  // Get current decision if linked
+  const currentDecision = linkedDecisionId
+    ? decisions.find((d: { id: string }) => d.id === linkedDecisionId)
+    : undefined
+
   const checkOllamaStatus = async () => {
     try {
       const running = await ollamaService.isRunning()
@@ -74,6 +100,66 @@ export function ChatPage() {
     } catch (error) {
       setOllamaRunning(false)
       setError('Failed to connect to Ollama. Make sure it is installed and running.')
+    }
+  }
+
+  const handleToolSelect = (tool: ToolDefinition) => {
+    setSelectedTool(tool)
+    setToolModalOpen(true)
+  }
+
+  const handleToolExecute = async (userInput: Record<string, unknown>) => {
+    if (!selectedTool || !currentSessionId) return
+
+    setIsExecutingTool(true)
+
+    try {
+      // Build execution context
+      const context: ToolExecutionContext = {
+        currentDecision,
+        allDecisions: decisions,
+        userInput,
+        sessionId: currentSessionId,
+      }
+
+      // Execute tool
+      const result = await toolRegistry.execute(selectedTool.id, context)
+
+      // Add tool result message
+      const toolMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'tool',
+        content: result.markdown || JSON.stringify(result.data, null, 2),
+        timestamp: Date.now(),
+        toolExecution: {
+          toolId: selectedTool.id,
+          toolName: selectedTool.name,
+          result,
+        },
+      }
+
+      addMessage(toolMessage)
+      await saveMessageToDb(toolMessage)
+
+      // Close modal
+      setToolModalOpen(false)
+      setSelectedTool(null)
+
+      // Ask LLM to interpret the result
+      if (result.success && ollamaRunning) {
+        const interpretationPrompt = `The user just ran the "${selectedTool.name}" tool. Here are the results:\n\n${result.markdown || JSON.stringify(result.data, null, 2)}\n\n${selectedTool.userPromptTemplate.replace('{{markdown}}', result.markdown || '').replace('{{query}}', (userInput.query as string) || '')}`
+
+        // Send interpretation request to LLM
+        setTimeout(() => {
+          handleSend(interpretationPrompt)
+        }, 500)
+      }
+    } catch (error) {
+      setError(
+        `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
+    } finally {
+      setIsExecutingTool(false)
     }
   }
 
@@ -124,24 +210,85 @@ export function ChatPage() {
     }
     addMessage(assistantMessage)
 
-    // Prepare messages for Ollama (include system prompt)
-    // Build system message with coaching prompt
-    let systemMessage = ollamaService.getDecisionAnalysisPrompt()
+    // RAG: Search for similar decisions to provide context
+    let ragContext = ''
+    try {
+      const searchResults = await vectorSearchService.searchSimilarDecisions(
+        textToSend,
+        5, // Top 5 similar decisions
+        {
+          similarityThreshold: 0.6,
+          filters: { isArchived: false },
+        }
+      )
 
-    // Add decision context if this is a decision-linked session
-    if (linkedDecisionId) {
-      systemMessage += '\n\nYou are currently discussing a specific decision from the user\'s decision journal. The decision context has been provided in the conversation.'
+      if (searchResults.length > 0) {
+        // Load full decision objects
+        const similarDecisions = searchResults
+          .map((result) => {
+            const decision = decisions.find((d) => d.id === result.decisionId)
+            return decision ? { decision, similarity: result.similarity } : null
+          })
+          .filter((item): item is NonNullable<typeof item> => item !== null)
+
+        // Build RAG context
+        ragContext = buildRAGContext(similarDecisions)
+      }
+    } catch (error) {
+      console.warn('RAG search failed, continuing without context:', error)
+    }
+
+    // Build user profile context
+    const userProfile: UserProfile | null = profileName || profileDescription || profileContext.length > 0
+      ? {
+          name: profileName,
+          description: profileDescription,
+          contextItems: profileContext,
+        }
+      : null
+
+    const profileContextString = buildProfileContext(userProfile)
+
+    // Build system prompt using prompt builder
+    const systemMessage = promptBuilder.buildSystemPrompt({
+      conversationType: linkedDecisionId ? 'decision-linked' : 'general',
+      currentDecision,
+      conversationHistory: messages
+        .filter((m) => m.role !== 'tool')
+        .map((m) => ({
+          id: m.id,
+          session_id: currentSessionId || '',
+          role: m.role,
+          content: m.content,
+          created_at: m.timestamp,
+          context_decisions: [],
+        })),
+    })
+
+    // Inject profile context and RAG context into system message
+    let systemMessageWithContext = systemMessage
+
+    // Add profile context first (who the user is)
+    if (profileContextString) {
+      systemMessageWithContext = `${systemMessageWithContext}\n\n${profileContextString}`
+    }
+
+    // Add RAG context second (past decisions)
+    if (ragContext) {
+      systemMessageWithContext = `${systemMessageWithContext}\n\n${ragContext}`
     }
 
     const ollamaMessages: OllamaChatMessage[] = [
       {
         role: 'system',
-        content: systemMessage,
+        content: systemMessageWithContext,
       },
-      ...messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      ...messages
+        .filter((m) => m.role !== 'tool') // Filter out tool messages
+        .map((m) => ({
+          role: m.role as 'user' | 'assistant', // Type assertion after filter
+          content: m.content,
+        })),
       {
         role: 'user',
         content: userMessage.content,
@@ -356,43 +503,66 @@ export function ChatPage() {
               </div>
             ) : (
               <div className="space-y-6">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-4 ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    {message.role === 'assistant' && (
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Bot className="h-5 w-5 text-primary" />
+                {messages.map((message) => {
+                  // Render tool messages with ToolResultCard
+                  if (message.role === 'tool' && message.toolExecution) {
+                    return (
+                      <div key={message.id}>
+                        <ToolResultCard
+                          toolName={message.toolExecution.toolName}
+                          result={message.toolExecution.result}
+                        />
                       </div>
-                    )}
+                    )
+                  }
+
+                  // Render user/assistant messages normally
+                  return (
                     <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                        message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-foreground'
+                      key={message.id}
+                      className={`flex gap-4 ${
+                        message.role === 'user' ? 'justify-end' : 'justify-start'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                        {message.content}
-                        {message.role === 'assistant' && isStreaming && !message.content && (
-                          <Loader2 className="h-4 w-4 animate-spin inline-block" />
-                        )}
-                      </p>
-                    </div>
-                    {message.role === 'user' && (
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                        <User className="h-5 w-5 text-secondary-foreground" />
+                      {message.role === 'assistant' && (
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Bot className="h-5 w-5 text-primary" />
+                        </div>
+                      )}
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                          message.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-foreground'
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                          {message.content}
+                          {message.role === 'assistant' && isStreaming && !message.content && (
+                            <Loader2 className="h-4 w-4 animate-spin inline-block" />
+                          )}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {message.role === 'user' && (
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                          <User className="h-5 w-5 text-secondary-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
                 <div ref={messagesEndRef} />
               </div>
             )}
           </div>
+
+          {/* Tool Palette */}
+          <ToolPalette
+            tools={toolRegistry.list()}
+            onToolSelect={handleToolSelect}
+            isCollapsed={toolPaletteCollapsed}
+            onToggleCollapse={() => setToolPaletteCollapsed(!toolPaletteCollapsed)}
+          />
 
           {/* Input Area */}
           <div className="p-4 border-t border-border">
@@ -448,6 +618,20 @@ export function ChatPage() {
           setModelModalOpen(false)
         }}
       />
+
+      {/* Tool Input Modal */}
+      {selectedTool && (
+        <ToolInputModal
+          tool={selectedTool}
+          isOpen={toolModalOpen}
+          isExecuting={isExecutingTool}
+          onClose={() => {
+            setToolModalOpen(false)
+            setSelectedTool(null)
+          }}
+          onSubmit={handleToolExecute}
+        />
+      )}
     </div>
   )
 }
