@@ -303,9 +303,9 @@ CREATE INDEX IF NOT EXISTS idx_summaries_session ON conversation_summaries(sessi
           CHECK(font_size IN ('xs', 'sm', 'base', 'lg', 'xl'))
         `);
       } catch (migrationError: any) {
-        // Column might already exist, which is fine
-        if (!migrationError.message?.includes('duplicate column')) {
-          console.warn('Font size column migration skipped:', migrationError.message);
+        // Silently ignore duplicate column errors (expected for fresh installs)
+        if (migrationError.message && !migrationError.message.includes('duplicate column')) {
+          console.warn('Font size column migration failed:', migrationError.message);
         }
       }
 
@@ -313,32 +313,52 @@ CREATE INDEX IF NOT EXISTS idx_summaries_session ON conversation_summaries(sessi
       try {
         await this.db.execute(`ALTER TABLE user_preferences ADD COLUMN profile_name TEXT`);
       } catch (migrationError: any) {
-        if (!migrationError.message?.includes('duplicate column')) {
-          console.warn('Profile name column migration skipped:', migrationError.message);
+        if (migrationError.message && !migrationError.message.includes('duplicate column')) {
+          console.warn('Profile name column migration failed:', migrationError.message);
         }
       }
 
       try {
         await this.db.execute(`ALTER TABLE user_preferences ADD COLUMN profile_description TEXT`);
       } catch (migrationError: any) {
-        if (!migrationError.message?.includes('duplicate column')) {
-          console.warn('Profile description column migration skipped:', migrationError.message);
+        if (migrationError.message && !migrationError.message.includes('duplicate column')) {
+          console.warn('Profile description column migration failed:', migrationError.message);
         }
       }
 
       try {
         await this.db.execute(`ALTER TABLE user_preferences ADD COLUMN profile_image_path TEXT`);
       } catch (migrationError: any) {
-        if (!migrationError.message?.includes('duplicate column')) {
-          console.warn('Profile image path column migration skipped:', migrationError.message);
+        if (migrationError.message && !migrationError.message.includes('duplicate column')) {
+          console.warn('Profile image path column migration failed:', migrationError.message);
         }
       }
 
       try {
         await this.db.execute(`ALTER TABLE user_preferences ADD COLUMN profile_context TEXT DEFAULT '[]'`);
       } catch (migrationError: any) {
-        if (!migrationError.message?.includes('duplicate column')) {
-          console.warn('Profile context column migration skipped:', migrationError.message);
+        if (migrationError.message && !migrationError.message.includes('duplicate column')) {
+          console.warn('Profile context column migration failed:', migrationError.message);
+        }
+      }
+
+      // Migration: Add attached_decision_ids column to chat_sessions
+      try {
+        await this.db.execute(`ALTER TABLE chat_sessions ADD COLUMN attached_decision_ids TEXT DEFAULT '[]'`);
+
+        // Migrate existing decision_id to attached_decision_ids
+        await this.db.execute(`
+          UPDATE chat_sessions
+          SET attached_decision_ids = CASE
+            WHEN decision_id IS NOT NULL
+            THEN json_array(decision_id)
+            ELSE '[]'
+          END
+          WHERE attached_decision_ids = '[]'
+        `);
+      } catch (migrationError: any) {
+        if (migrationError.message && !migrationError.message.includes('duplicate column')) {
+          console.warn('Attached decision IDs column migration failed:', migrationError.message);
         }
       }
     } catch (error) {
@@ -924,9 +944,17 @@ CREATE INDEX IF NOT EXISTS idx_summaries_session ON conversation_summaries(sessi
     const updated_at = session.created_at; // Initialize updated_at with created_at
 
     await db.execute(
-      `INSERT INTO chat_sessions (id, decision_id, created_at, updated_at, trigger_type, title)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [id, session.decision_id, session.created_at, updated_at, session.trigger_type, null]
+      `INSERT INTO chat_sessions (id, decision_id, attached_decision_ids, created_at, updated_at, trigger_type, title)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        id,
+        session.decision_id,
+        JSON.stringify(session.attached_decision_ids || []),
+        session.created_at,
+        updated_at,
+        session.trigger_type,
+        null
+      ]
     );
 
     return { id, ...session, updated_at, title: null };
@@ -1002,6 +1030,7 @@ CREATE INDEX IF NOT EXISTS idx_summaries_session ON conversation_summaries(sessi
     return rows.map(row => ({
       id: row.id,
       decision_id: row.decision_id,
+      attached_decision_ids: JSON.parse(row.attached_decision_ids || '[]'),
       created_at: row.created_at,
       updated_at: row.updated_at,
       trigger_type: row.trigger_type,
@@ -1009,6 +1038,7 @@ CREATE INDEX IF NOT EXISTS idx_summaries_session ON conversation_summaries(sessi
       message_count: row.message_count || 0,
       first_message_preview: row.first_message_preview,
       linked_decision_title: row.linked_decision_title,
+      linked_decision_titles: [], // TODO: Implement multi-decision title fetching
     }));
   }
 
@@ -1048,6 +1078,41 @@ CREATE INDEX IF NOT EXISTS idx_summaries_session ON conversation_summaries(sessi
     const query = `UPDATE chat_sessions SET ${updateFields.join(', ')} WHERE id = $${updateValues.length}`;
 
     await db.execute(query, updateValues);
+  }
+
+  /**
+   * Update chat session attachments
+   */
+  async updateChatSessionAttachments(sessionId: string, decisionIds: string[]): Promise<void> {
+    const db = await this.ensureDB();
+    await db.execute(
+      'UPDATE chat_sessions SET attached_decision_ids = $1, updated_at = $2 WHERE id = $3',
+      [JSON.stringify(decisionIds), Date.now(), sessionId]
+    );
+  }
+
+  /**
+   * Get chat session by ID
+   */
+  async getChatSession(sessionId: string): Promise<ChatSession | null> {
+    const db = await this.ensureDB();
+    const rows = await db.select<any[]>(
+      'SELECT * FROM chat_sessions WHERE id = $1',
+      [sessionId]
+    );
+
+    if (!rows || rows.length === 0) return null;
+
+    const row = rows[0];
+    return {
+      id: row.id,
+      decision_id: row.decision_id,
+      attached_decision_ids: JSON.parse(row.attached_decision_ids || '[]'),
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      trigger_type: row.trigger_type,
+      title: row.title,
+    };
   }
 
   /**
@@ -1310,8 +1375,9 @@ CREATE INDEX IF NOT EXISTS idx_summaries_session ON conversation_summaries(sessi
   async saveEmbedding(embedding: any): Promise<void> {
     const db = await this.ensureDB();
 
-    // Convert Float32Array to Buffer for BLOB storage
-    const vectorBuffer = Buffer.from(embedding.vector.buffer);
+    // Convert Float32Array to Uint8Array for BLOB storage
+    // Works in both browser and Tauri/Node.js environments without Buffer polyfill
+    const vectorBuffer = new Uint8Array(embedding.vector.buffer);
 
     await db.execute(
       `INSERT OR REPLACE INTO decision_embeddings (

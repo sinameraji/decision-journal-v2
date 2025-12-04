@@ -12,6 +12,7 @@ import {
   TOOL_ASSISTED_SUFFIX,
 } from './base-prompt';
 import { buildDecisionContextPrompt } from './decision-context-prompt';
+import { buildMultiDecisionContextPrompt } from './multi-decision-context-prompt';
 import { selectFewShotExamples, type FewShotExample } from './few-shot-examples';
 
 /**
@@ -24,7 +25,8 @@ export type ConversationType = 'decision-linked' | 'general' | 'tool-assisted';
  */
 export interface PromptContext {
   conversationType: ConversationType;
-  currentDecision?: Decision;
+  currentDecision?: Decision;  // Deprecated - use attachedDecisions
+  attachedDecisions?: Decision[];
   toolId?: string;
   conversationHistory: ChatMessage[];
 }
@@ -55,10 +57,18 @@ class PromptBuilder {
     // Base prompt (always included)
     parts.push(BASE_SYSTEM_PROMPT);
 
-    // Decision-linked suffix
-    if (context.conversationType === 'decision-linked' && context.currentDecision) {
+    // Decision-linked suffix with multi-decision support
+    if (context.conversationType === 'decision-linked') {
       parts.push(DECISION_LINKED_SUFFIX);
-      parts.push('\n\n' + buildDecisionContextPrompt(context.currentDecision));
+
+      // Multi-decision context (NEW)
+      if (context.attachedDecisions && context.attachedDecisions.length > 0) {
+        parts.push('\n\n' + buildMultiDecisionContextPrompt(context.attachedDecisions));
+      }
+      // Backward compatibility: single decision
+      else if (context.currentDecision) {
+        parts.push('\n\n' + buildDecisionContextPrompt(context.currentDecision));
+      }
     }
 
     // Tool-assisted suffix

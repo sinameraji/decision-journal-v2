@@ -32,7 +32,8 @@ function App() {
         console.error('[App] Failed to scan for missing embeddings:', error)
       })
     }
-  }, [checkForUpdates, scheduleNextCheck])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <>

@@ -4,7 +4,8 @@
 
 export interface ChatSession {
   id: string;
-  decision_id: string | null;
+  decision_id: string | null; // Deprecated - kept for backward compatibility
+  attached_decision_ids: string[];
   created_at: number;
   updated_at: number;
   trigger_type: 'manual' | 'emotional_flag' | 'review_prompt';
@@ -14,7 +15,8 @@ export interface ChatSession {
 export interface ChatSessionWithMetadata extends ChatSession {
   message_count: number;
   first_message_preview: string | null;
-  linked_decision_title: string | null;
+  linked_decision_title: string | null; // Deprecated - kept for backward compatibility
+  linked_decision_titles: string[];
 }
 
 export interface ChatMessage {

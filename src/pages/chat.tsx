@@ -6,11 +6,16 @@ import { Button } from '@/components/ui/button'
 import { ChatHistorySidebar } from '@/components/chat/ChatHistorySidebar'
 import { ModelSelectorButton } from '@/components/chat/ModelSelectorButton'
 import { ModelSelectorModal } from '@/components/chat/ModelSelectorModal'
+import { DecisionPickerButton } from '@/components/chat/DecisionPickerButton'
+import { DecisionPickerModal } from '@/components/chat/DecisionPickerModal'
+import { AttachedDecisionChips } from '@/components/chat/AttachedDecisionChips'
 import { VoiceInputButton } from '@/components/voice-input-button'
-import { ToolPalette } from '@/components/chat/ToolPalette'
 import { ToolResultCard } from '@/components/chat/ToolResultCard'
+import { InlineToolPalette } from '@/components/chat/InlineToolPalette'
+import { ToolInputFormMessage } from '@/components/chat/ToolInputFormMessage'
 import { toolRegistry } from '@/services/tools/tool-registry'
 import type { ToolDefinition, ToolExecutionContext } from '@/services/tools/tool-types'
+import { parseSlashCommand, removeSlashCommand } from '@/utils/slash-command-parser'
 import { vectorSearchService } from '@/services/rag/vector-search-service'
 import { buildRAGContext } from '@/utils/prompts/context-builder'
 import { buildProfileContext } from '@/utils/prompts/profile-context-prompt'
@@ -33,6 +38,7 @@ import {
   useCleanupPendingSessions,
   useIsPendingSession,
   useCleanup,
+  useClearMessages,
   useStore,
   type Message,
 } from '@/store'
@@ -54,6 +60,7 @@ export function ChatPage() {
   const downloadingModels = useDownloadingModels()
   const generateSessionTitle = useGenerateSessionTitle()
   const createNewSession = useCreateNewSession()
+  const clearMessages = useClearMessages()
   const decisions = useStore((state) => state.decisions)
   const profileName = useStore((state) => state.profileName)
   const profileDescription = useStore((state) => state.profileDescription)
@@ -65,6 +72,11 @@ export function ChatPage() {
   const linkedDecisionId = useLinkedDecisionId()
   const clearPendingMessage = useClearPendingMessage()
 
+  // Hooks for decision attachments
+  const attachedDecisionIds = useStore((state) => state.attachedDecisionIds)
+  const attachDecision = useStore((state) => state.attachDecision)
+  const detachDecision = useStore((state) => state.detachDecision)
+
   // Hooks for pending session cleanup
   const cleanupPendingSessions = useCleanupPendingSessions()
   const isPendingSession = useIsPendingSession()
@@ -75,17 +87,29 @@ export function ChatPage() {
   const [ollamaRunning, setOllamaRunning] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [modelModalOpen, setModelModalOpen] = useState(false)
+  const [pickerModalOpen, setPickerModalOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const hasInitializedSession = useRef(false)
 
   // Tool execution state
   const [isExecutingTool, setIsExecutingTool] = useState(false)
-  const [toolPaletteCollapsed, setToolPaletteCollapsed] = useState(true)
 
-  // Get current decision if linked
+  // Inline tool palette state
+  const [showToolPalette, setShowToolPalette] = useState(false)
+  const [toolFilterQuery, setToolFilterQuery] = useState('')
+  const [toolHighlightIndex, setToolHighlightIndex] = useState(0)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Get current decision if linked (deprecated - for backward compatibility)
   const currentDecision = linkedDecisionId
     ? decisions.find((d: { id: string }) => d.id === linkedDecisionId)
     : undefined
+
+  // Get attached decisions
+  const attachedDecisions = attachedDecisionIds
+    .map((id) => decisions.find((d: { id: string }) => d.id === id))
+    .filter((d): d is any => d !== undefined)
 
   const checkOllamaStatus = async () => {
     try {
@@ -149,6 +173,78 @@ export function ChatPage() {
     } finally {
       setIsExecutingTool(false)
     }
+  }
+
+  const handleToolSelectFromSlash = (tool: ToolDefinition) => {
+    // Hide palette
+    setShowToolPalette(false)
+    setToolFilterQuery('')
+    setToolHighlightIndex(0)
+
+    // Remove slash command from input
+    setInput(removeSlashCommand(input))
+
+    // Check if tool needs input
+    const customFields =
+      tool.inputSchema.type === 'custom-query' ? tool.inputSchema.customFields || [] : []
+
+    if (customFields.length === 0) {
+      // No input needed - execute immediately
+      handleToolExecute(tool, {})
+    } else {
+      // Create tool-input message
+      const toolInputMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'tool-input',
+        content: '',
+        timestamp: Date.now(),
+        toolInput: {
+          toolId: tool.id,
+          toolName: tool.name,
+          formData: {},
+          status: 'pending',
+        },
+      }
+
+      addMessage(toolInputMessage)
+      // Note: We do NOT save tool-input messages to database
+      // They're ephemeral and only exist in UI
+    }
+  }
+
+  const handleToolInputSubmit = async (
+    messageId: string,
+    tool: ToolDefinition,
+    formData: Record<string, unknown>
+  ) => {
+    // Update message status to 'submitted'
+    const updatedMessages = messages.map((msg) => {
+      if (msg.id === messageId && msg.role === 'tool-input' && msg.toolInput) {
+        return {
+          ...msg,
+          toolInput: {
+            ...msg.toolInput,
+            formData,
+            status: 'submitted' as const,
+          },
+        }
+      }
+      return msg
+    })
+
+    // Update messages in store
+    clearMessages()
+    updatedMessages.forEach((msg) => addMessage(msg))
+
+    // Execute tool with form data
+    await handleToolExecute(tool, formData)
+  }
+
+  const handleToolInputCancel = (messageId: string) => {
+    // Remove the message from the chat
+    const updatedMessages = messages.filter((msg) => msg.id !== messageId)
+    clearMessages()
+    updatedMessages.forEach((msg) => addMessage(msg))
   }
 
   const handleSend = useCallback(async (messageText?: string) => {
@@ -258,14 +354,15 @@ export function ChatPage() {
 
     // Build system prompt using prompt builder
     const systemMessage = promptBuilder.buildSystemPrompt({
-      conversationType: linkedDecisionId ? 'decision-linked' : 'general',
-      currentDecision,
+      conversationType: attachedDecisions.length > 0 ? 'decision-linked' : 'general',
+      attachedDecisions,  // NEW: Pass array of attached decisions
+      currentDecision,  // Deprecated: Keep for backward compatibility
       conversationHistory: messages
-        .filter((m) => m.role !== 'tool')
+        .filter((m) => m.role !== 'tool' && m.role !== 'tool-input')
         .map((m) => ({
           id: m.id,
           session_id: currentSessionId || '',
-          role: m.role,
+          role: m.role as 'user' | 'assistant' | 'system' | 'tool',
           content: m.content,
           created_at: m.timestamp,
           context_decisions: [],
@@ -291,7 +388,7 @@ export function ChatPage() {
         content: systemMessageWithContext,
       },
       ...messages
-        .filter((m) => m.role !== 'tool') // Filter out tool messages
+        .filter((m) => m.role !== 'tool' && m.role !== 'tool-input') // Filter out tool messages and tool-input messages
         .map((m) => ({
           role: m.role as 'user' | 'assistant', // Type assertion after filter
           content: m.content,
@@ -356,15 +453,20 @@ export function ChatPage() {
 
   // Create initial session if none exists OR if current is stale temp
   useEffect(() => {
+    // Only run on initial mount to prevent infinite re-renders when attaching/detaching decisions
+    if (hasInitializedSession.current) return
+
     if (!currentSessionId || (isPendingSession(currentSessionId) && messages.length === 0)) {
       // Create session with linkedDecisionId if coming from decision page
       if (linkedDecisionId) {
-        createNewSession(linkedDecisionId)
+        createNewSession([linkedDecisionId])  // Pass as array
       } else {
         createNewSession()
       }
+      hasInitializedSession.current = true
     }
-  }, [currentSessionId, createNewSession, linkedDecisionId, isPendingSession, messages.length])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSessionId, linkedDecisionId, messages.length, createNewSession])
 
   // Cleanup pending sessions and timers when leaving chat page
   useEffect(() => {
@@ -410,10 +512,98 @@ export function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value
+    const cursorPos = e.target.selectionStart
+
+    setInput(newValue)
+
+    // Parse for slash commands
+    const parseResult = parseSlashCommand(newValue, cursorPos)
+
+    if (parseResult.type === 'none') {
+      // Hide palette if it's showing
+      if (showToolPalette) {
+        setShowToolPalette(false)
+        setToolFilterQuery('')
+        setToolHighlightIndex(0)
+      }
+    } else if (parseResult.type === 'trigger' || parseResult.type === 'partial') {
+      // Show/update palette
+      setShowToolPalette(true)
+      setToolFilterQuery(parseResult.command)
+      setToolHighlightIndex(0) // Reset highlight
+    } else if (parseResult.type === 'exact-match' && parseResult.tool) {
+      // Direct execution
+      handleToolSelectFromSlash(parseResult.tool)
+    }
+  }
+
+  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Only handle keyboard nav when palette is visible
+    if (!showToolPalette) {
+      // Default behavior (Enter to send, etc.)
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        handleSend()
+      }
+      return
+    }
+
+    const filteredTools = toolFilterQuery
+      ? toolRegistry.search(toolFilterQuery)
+      : toolRegistry.list()
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setToolHighlightIndex((prev) => Math.min(prev + 1, filteredTools.length - 1))
+        break
+
+      case 'ArrowUp':
+        e.preventDefault()
+        setToolHighlightIndex((prev) => Math.max(prev - 1, 0))
+        break
+
+      case 'Enter':
+        // Only intercept Enter if palette is showing
+        if (!e.shiftKey) {
+          e.preventDefault()
+          const selectedTool = filteredTools[toolHighlightIndex]
+          if (selectedTool) {
+            handleToolSelectFromSlash(selectedTool)
+          }
+        }
+        break
+
+      case 'Escape':
+        e.preventDefault()
+        setShowToolPalette(false)
+        setToolFilterQuery('')
+        setToolHighlightIndex(0)
+        // Remove slash command from input
+        setInput(removeSlashCommand(input))
+        break
+
+      case 'Tab':
+        // Optional: Tab to autocomplete tool name
+        e.preventDefault()
+        const highlighted = filteredTools[toolHighlightIndex]
+        if (highlighted) {
+          const shortcut = toolRegistry.get(highlighted.id)
+            ? Object.keys(toolRegistry.list()).find((key) => key === highlighted.id)
+            : undefined
+          if (shortcut) {
+            setInput(`/${shortcut} `)
+            setShowToolPalette(false)
+            setToolFilterQuery('')
+          }
+        }
+        break
+
+      default:
+        // Let other keys pass through
+        break
     }
   }
 
@@ -481,6 +671,16 @@ export function ChatPage() {
           </div>
         )}
 
+        {/* Attached Decision Chips */}
+        {attachedDecisions.length > 0 && (
+          <div className="mb-4">
+            <AttachedDecisionChips
+              decisions={attachedDecisions}
+              onDetach={detachDecision}
+            />
+          </div>
+        )}
+
         {/* Messages Area */}
         <div className="flex-1 bg-card rounded-2xl border border-border shadow-sm flex flex-col min-h-0 mb-4">
           <div className="flex-1 overflow-y-auto p-6">
@@ -507,6 +707,15 @@ export function ChatPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Slash Command Hint */}
+                <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <span>Type</span>
+                  <kbd className="px-2 py-1 text-xs font-mono bg-muted border border-border rounded shadow-sm">
+                    /
+                  </kbd>
+                  <span>for coaching tools</span>
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
@@ -518,6 +727,30 @@ export function ChatPage() {
                         <ToolResultCard
                           toolName={message.toolExecution.toolName}
                           result={message.toolExecution.result}
+                        />
+                      </div>
+                    )
+                  }
+
+                  // Render tool input forms
+                  if (message.role === 'tool-input' && message.toolInput) {
+                    const tool = toolRegistry.get(message.toolInput.toolId)
+                    if (!tool) return null
+
+                    // Don't render if already submitted or cancelled
+                    if (message.toolInput.status !== 'pending') return null
+
+                    return (
+                      <div key={message.id} className="my-4">
+                        <ToolInputFormMessage
+                          messageId={message.id}
+                          tool={tool}
+                          formData={message.toolInput.formData}
+                          onSubmit={(formData) =>
+                            handleToolInputSubmit(message.id, tool, formData)
+                          }
+                          onCancel={() => handleToolInputCancel(message.id)}
+                          isExecuting={isExecutingTool}
                         />
                       </div>
                     )
@@ -563,32 +796,57 @@ export function ChatPage() {
             )}
           </div>
 
-          {/* Tool Palette */}
-          <ToolPalette
-            tools={toolRegistry.list()}
-            onToolExecute={handleToolExecute}
-            isCollapsed={toolPaletteCollapsed}
-            onToggleCollapse={() => setToolPaletteCollapsed(!toolPaletteCollapsed)}
-            isExecuting={isExecutingTool}
-          />
-
           {/* Input Area */}
           <div className="p-4 border-t border-border">
+            {/* Decision Picker Button */}
+            <div className="mb-3">
+              <DecisionPickerButton
+                attachedCount={attachedDecisions.length}
+                onClick={() => setPickerModalOpen(true)}
+                disabled={!ollamaRunning}
+              />
+            </div>
+
             <div className="flex items-end gap-3">
               <div className="flex-1 relative">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder={
-                    ollamaRunning
-                      ? 'Ask me anything about your decisions... (Shift+Enter for new line)'
-                      : 'Ollama is not running...'
-                  }
-                  disabled={!ollamaRunning || isStreaming}
-                  className="w-full px-4 py-3 pr-14 bg-muted border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-foreground placeholder:text-muted-foreground disabled:opacity-50"
-                  rows={2}
-                />
+                {/* Inline Tool Palette with simple conditional rendering */}
+                <div className="relative">
+                  <textarea
+                    ref={textareaRef}
+                    value={input}
+                    onChange={handleInputChange}
+                    onKeyDown={handleTextareaKeyDown}
+                    placeholder={
+                      ollamaRunning
+                        ? 'Ask me anything about your decisions... (Shift+Enter for new line)'
+                        : 'Ollama is not running...'
+                    }
+                    disabled={!ollamaRunning || isStreaming}
+                    className="w-full px-4 py-3 pr-14 bg-muted border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-foreground placeholder:text-muted-foreground disabled:opacity-50"
+                    rows={2}
+                  />
+
+                  {/* Tool palette positioned absolutely */}
+                  {showToolPalette && (
+                    <div
+                      className="absolute bottom-full left-0 mb-2 z-50 bg-card border border-border rounded-xl shadow-lg"
+                      style={{ width: textareaRef.current?.offsetWidth || '100%' }}
+                    >
+                      <InlineToolPalette
+                        tools={
+                          toolFilterQuery
+                            ? toolRegistry.search(toolFilterQuery)
+                            : toolRegistry.list()
+                        }
+                        filterQuery={toolFilterQuery}
+                        highlightedIndex={toolHighlightIndex}
+                        onToolSelect={handleToolSelectFromSlash}
+                        currentDecision={currentDecision}
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="absolute right-3 top-3">
                   <VoiceInputButton onTranscript={handleVoiceTranscript} />
                 </div>
@@ -624,6 +882,17 @@ export function ChatPage() {
         onModelSelect={(modelName) => {
           setSelectedModel(modelName)
           setModelModalOpen(false)
+        }}
+      />
+
+      {/* Decision Picker Modal */}
+      <DecisionPickerModal
+        open={pickerModalOpen}
+        onClose={() => setPickerModalOpen(false)}
+        attachedIds={attachedDecisionIds}
+        onAttach={(ids) => {
+          ids.forEach((id) => attachDecision(id))
+          setPickerModalOpen(false)
         }}
       />
     </div>

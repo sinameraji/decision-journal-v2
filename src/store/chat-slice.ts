@@ -24,13 +24,19 @@ const isTempSessionId = (sessionId: string): boolean => {
 // Simplified message interface for in-memory state
 export interface Message {
   id: string
-  role: 'user' | 'assistant' | 'tool'
+  role: 'user' | 'assistant' | 'tool' | 'tool-input'
   content: string
   timestamp: number
   toolExecution?: {
     toolId: string
     toolName: string
     result: any
+  }
+  toolInput?: {
+    toolId: string
+    toolName: string
+    formData: Record<string, unknown>
+    status: 'pending' | 'submitted' | 'cancelled'
   }
 }
 
@@ -48,7 +54,8 @@ export interface ChatSlice {
   currentSessionId: string | null
   pendingMessage: string | null
   autoSubmit: boolean
-  linkedDecisionId: string | null
+  linkedDecisionId: string | null  // Deprecated - kept for backward compatibility
+  attachedDecisionIds: string[]
   isLoading: boolean
   error: string | null
   sessions: ChatSessionWithMetadata[]
@@ -75,14 +82,17 @@ export interface ChatSlice {
   clearPendingMessage: () => void
 
   // Session management
-  createPendingSession: (decisionId?: string) => string
-  createNewSession: (decisionId?: string) => Promise<string>
+  createPendingSession: (decisionIds?: string[]) => string
+  createNewSession: (decisionIds?: string[]) => Promise<string>
   persistPendingSession: (tempSessionId: string) => Promise<string>
   cleanupPendingSessions: () => void
   isPendingSession: (sessionId: string | null) => boolean
   loadMessagesFromSession: (sessionId: string) => Promise<void>
   setCurrentSessionId: (sessionId: string | null) => void
   setLinkedDecision: (decisionId: string | null) => void
+  attachDecision: (decisionId: string) => void
+  detachDecision: (decisionId: string) => void
+  setAttachedDecisions: (decisionIds: string[]) => void
 
   // Database persistence
   saveMessageToDb: (message: Message, contextDecisionIds?: string[]) => Promise<void>
@@ -119,7 +129,8 @@ export const createChatSlice: StateCreator<
   currentSessionId: null as string | null,
   pendingMessage: null as string | null,
   autoSubmit: false,
-  linkedDecisionId: null as string | null,
+  linkedDecisionId: null as string | null,  // Deprecated
+  attachedDecisionIds: [] as string[],
   isLoading: false,
   error: null as string | null,
   sessions: [] as ChatSessionWithMetadata[],
@@ -160,7 +171,8 @@ export const createChatSlice: StateCreator<
     set({
       pendingMessage: message,
       autoSubmit,
-      linkedDecisionId: decisionId || null,
+      linkedDecisionId: decisionId || null,  // Deprecated
+      attachedDecisionIds: decisionId ? [decisionId] : [],
     })
   },
 
@@ -171,7 +183,7 @@ export const createChatSlice: StateCreator<
     })
   },
 
-  createPendingSession: (decisionId?: string): string => {
+  createPendingSession: (decisionIds?: string[]): string => {
     // Create temporary session ID
     const tempSessionId = generateTempSessionId()
 
@@ -182,16 +194,17 @@ export const createChatSlice: StateCreator<
     // Set as current session
     set({
       currentSessionId: tempSessionId,
-      linkedDecisionId: decisionId || null,
+      linkedDecisionId: decisionIds && decisionIds.length > 0 ? decisionIds[0] : null,  // Deprecated
+      attachedDecisionIds: decisionIds || [],
       pendingSessions
     })
 
     return tempSessionId
   },
 
-  createNewSession: async (decisionId?: string): Promise<string> => {
+  createNewSession: async (decisionIds?: string[]): Promise<string> => {
     // This is now a wrapper that creates pending session
-    return get().createPendingSession(decisionId)
+    return get().createPendingSession(decisionIds)
   },
 
   persistPendingSession: async (tempSessionId: string): Promise<string> => {
@@ -199,7 +212,8 @@ export const createChatSlice: StateCreator<
       // Create actual session in database
       const now = Date.now()
       const session: Omit<ChatSession, 'id'> = {
-        decision_id: get().linkedDecisionId || null,
+        decision_id: get().linkedDecisionId || null,  // Deprecated
+        attached_decision_ids: get().attachedDecisionIds,
         created_at: now,
         updated_at: now,
         trigger_type: 'manual',
@@ -235,7 +249,7 @@ export const createChatSlice: StateCreator<
       set({ pendingSessions })
 
       // Create a new pending session to allow user to retry
-      get().createPendingSession(get().linkedDecisionId || undefined)
+      get().createPendingSession(get().attachedDecisionIds)
 
       throw error
     }
@@ -260,7 +274,21 @@ export const createChatSlice: StateCreator<
   loadMessagesFromSession: async (sessionId: string) => {
     set({ isLoading: true, error: null })
     try {
+      const session = await sqliteService.getChatSession(sessionId)
       const chatMessages = await sqliteService.getChatMessages(sessionId)
+
+      // Migrate old decision_id to attachedDecisionIds
+      let attachedIds: string[] = []
+      if (session) {
+        if (session.attached_decision_ids && session.attached_decision_ids.length > 0) {
+          attachedIds = session.attached_decision_ids
+        } else if (session.decision_id) {
+          // Legacy: migrate on load
+          attachedIds = [session.decision_id]
+          // Persist migration to database
+          await sqliteService.updateChatSessionAttachments(sessionId, attachedIds)
+        }
+      }
 
       // Convert ChatMessage[] to Message[]
       const messages: Message[] = chatMessages.map((msg: ChatMessage) => ({
@@ -270,7 +298,13 @@ export const createChatSlice: StateCreator<
         timestamp: msg.created_at,
       }))
 
-      set({ messages, currentSessionId: sessionId, isLoading: false })
+      set({
+        messages,
+        currentSessionId: sessionId,
+        attachedDecisionIds: attachedIds,
+        linkedDecisionId: attachedIds.length > 0 ? attachedIds[0] : null,  // Deprecated
+        isLoading: false
+      })
     } catch (error) {
       console.error('Failed to load messages:', error)
       set({ error: (error as Error).message, isLoading: false })
@@ -282,7 +316,51 @@ export const createChatSlice: StateCreator<
   },
 
   setLinkedDecision: (decisionId: string | null) => {
-    set({ linkedDecisionId: decisionId })
+    set({
+      linkedDecisionId: decisionId,  // Deprecated
+      attachedDecisionIds: decisionId ? [decisionId] : []
+    })
+  },
+
+  attachDecision: (decisionId: string) => {
+    const current = get().attachedDecisionIds
+    if (!current.includes(decisionId)) {
+      const updated = [...current, decisionId]
+      set({
+        attachedDecisionIds: updated,
+      })
+
+      // Persist to database if session exists
+      const sessionId = get().currentSessionId
+      if (sessionId && !isTempSessionId(sessionId)) {
+        sqliteService.updateChatSessionAttachments(sessionId, updated)
+      }
+    }
+  },
+
+  detachDecision: (decisionId: string) => {
+    const updated = get().attachedDecisionIds.filter(id => id !== decisionId)
+    set({
+      attachedDecisionIds: updated,
+    })
+
+    // Persist to database if session exists
+    const sessionId = get().currentSessionId
+    if (sessionId && !isTempSessionId(sessionId)) {
+      sqliteService.updateChatSessionAttachments(sessionId, updated)
+    }
+  },
+
+  setAttachedDecisions: (decisionIds: string[]) => {
+    set({
+      attachedDecisionIds: decisionIds,
+    })
+
+    // Persist to database if session exists
+    const sessionId = get().currentSessionId
+    if (sessionId && !isTempSessionId(sessionId)) {
+      sqliteService.updateChatSessionAttachments(sessionId, decisionIds)
+    }
   },
 
   saveMessageToDb: async (message: Message, contextDecisionIds: string[] = []) => {
@@ -290,8 +368,8 @@ export const createChatSlice: StateCreator<
 
     // If no session, create a pending one
     if (!sessionId) {
-      const linkedId = get().linkedDecisionId
-      sessionId = get().createPendingSession(linkedId || undefined)
+      const attachedIds = get().attachedDecisionIds
+      sessionId = get().createPendingSession(attachedIds.length > 0 ? attachedIds : undefined)
     }
 
     // If session is pending (temp ID), persist it first
@@ -319,10 +397,15 @@ export const createChatSlice: StateCreator<
       return
     }
 
+    // Don't save tool-input messages to database (they're ephemeral)
+    if (message.role === 'tool-input') {
+      return
+    }
+
     try {
       const chatMessage: Omit<ChatMessage, 'id'> = {
         session_id: sessionId,
-        role: message.role,
+        role: message.role as 'user' | 'assistant' | 'system' | 'tool',
         content: message.content,
         created_at: message.timestamp,
         context_decisions: contextDecisionIds,

@@ -22,7 +22,6 @@ export function OllamaInstallStep({ onNext }: OllamaInstallStepProps) {
   const [error, setError] = useState<string | null>(null);
   const [currentDownloadModel, setCurrentDownloadModel] = useState<string>('');
   const [currentDownloadPurpose, setCurrentDownloadPurpose] = useState<string>('');
-  const [currentModelIndex, setCurrentModelIndex] = useState<number>(0);
 
   // Helper to open URLs in both Tauri and browser modes
   const openUrl = async (url: string) => {
@@ -129,7 +128,6 @@ export function OllamaInstallStep({ onNext }: OllamaInstallStepProps) {
       // Download each missing model sequentially
       for (let i = 0; i < modelsToInstall.length; i++) {
         const model = modelsToInstall[i];
-        setCurrentModelIndex(i);
         setCurrentDownloadModel(model.name);
         setCurrentDownloadPurpose(model.purpose);
 

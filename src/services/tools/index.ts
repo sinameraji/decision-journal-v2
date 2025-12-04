@@ -16,12 +16,19 @@ import { preMortemTool } from './risk/pre-mortem';
 // Framework tools
 import { biasDetectorTool } from './framework/bias-detector';
 
+// Flag to prevent duplicate registration
+let registered = false;
+
 /**
  * Register all available tools.
  *
  * Call this function once at app startup to make tools available.
  */
 export function registerAllTools(): void {
+  // Prevent duplicate registration
+  if (registered) return;
+  registered = true;
+
   // Pattern Recognition Tools
   toolRegistry.register(patternDetectiveTool);
   toolRegistry.register(calibrationCoachTool);
