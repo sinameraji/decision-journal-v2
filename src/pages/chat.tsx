@@ -74,7 +74,7 @@ export function ChatPage() {
 
   // Hooks for decision attachments
   const attachedDecisionIds = useStore((state) => state.attachedDecisionIds)
-  const attachDecision = useStore((state) => state.attachDecision)
+  const setAttachedDecisions = useStore((state) => state.setAttachedDecisions)
   const detachDecision = useStore((state) => state.detachDecision)
 
   // Hooks for pending session cleanup
@@ -474,6 +474,8 @@ export function ChatPage() {
       // On unmount, cleanup abandoned pending sessions and pending timers
       cleanupPendingSessions()
       cleanup()
+      // Reset session initialization flag for next visit
+      hasInitializedSession.current = false
     }
   }, [cleanupPendingSessions, cleanup])
 
@@ -891,7 +893,8 @@ export function ChatPage() {
         onClose={() => setPickerModalOpen(false)}
         attachedIds={attachedDecisionIds}
         onAttach={(ids) => {
-          ids.forEach((id) => attachDecision(id))
+          // Batch update to avoid multiple database writes
+          setAttachedDecisions([...attachedDecisionIds, ...ids])
           setPickerModalOpen(false)
         }}
       />

@@ -333,7 +333,9 @@ export const createChatSlice: StateCreator<
       // Persist to database if session exists
       const sessionId = get().currentSessionId
       if (sessionId && !isTempSessionId(sessionId)) {
-        sqliteService.updateChatSessionAttachments(sessionId, updated)
+        sqliteService.updateChatSessionAttachments(sessionId, updated).catch((error) => {
+          console.error('Failed to persist attachment changes:', error)
+        })
       }
     }
   },
@@ -347,7 +349,9 @@ export const createChatSlice: StateCreator<
     // Persist to database if session exists
     const sessionId = get().currentSessionId
     if (sessionId && !isTempSessionId(sessionId)) {
-      sqliteService.updateChatSessionAttachments(sessionId, updated)
+      sqliteService.updateChatSessionAttachments(sessionId, updated).catch((error) => {
+        console.error('Failed to persist attachment changes:', error)
+      })
     }
   },
 
@@ -359,7 +363,9 @@ export const createChatSlice: StateCreator<
     // Persist to database if session exists
     const sessionId = get().currentSessionId
     if (sessionId && !isTempSessionId(sessionId)) {
-      sqliteService.updateChatSessionAttachments(sessionId, decisionIds)
+      sqliteService.updateChatSessionAttachments(sessionId, decisionIds).catch((error) => {
+        console.error('Failed to persist attachment changes:', error)
+      })
     }
   },
 

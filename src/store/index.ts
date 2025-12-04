@@ -93,6 +93,12 @@ export const useCleanupPendingSessions = () => useStore((state) => state.cleanup
 export const useIsPendingSession = () => useStore((state) => state.isPendingSession)
 export const usePersistPendingSession = () => useStore((state) => state.persistPendingSession)
 
+// Decision attachment actions
+export const useAttachDecision = () => useStore((state) => state.attachDecision)
+export const useDetachDecision = () => useStore((state) => state.detachDecision)
+export const useSetAttachedDecisions = () => useStore((state) => state.setAttachedDecisions)
+export const useAttachedDecisionIds = () => useStore((state) => state.attachedDecisionIds)
+
 // Chat sessions actions
 export const useLoadChatSessions = () => useStore((state) => state.loadChatSessions)
 export const useRefreshSessions = () => useStore((state) => state.refreshSessions)
