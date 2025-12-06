@@ -10,6 +10,7 @@ pub fn run() {
     .plugin(tauri_plugin_sql::Builder::default().build())
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_http::init())
+    .plugin(tauri_plugin_process::init())
     .manage(transcription::WhisperState::new())
     .invoke_handler(tauri::generate_handler![
       transcription::get_model_status,

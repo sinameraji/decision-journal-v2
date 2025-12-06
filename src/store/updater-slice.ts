@@ -158,11 +158,22 @@ export const createUpdaterSlice: StateCreator<UpdaterSlice> = (set, get) => ({
       })
 
       // Relaunch the application
-      await relaunch()
+      try {
+        await relaunch()
+      } catch (relaunchError) {
+        console.error('Relaunch failed:', relaunchError)
+        throw new Error(
+          'Update installed successfully but failed to restart. Please restart the application manually.'
+        )
+      }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to install update'
       console.error('Update installation failed:', error)
+
+      // Re-open the dialog to show the error
       set({
-        updateError: error instanceof Error ? error.message : 'Failed to install update',
+        showUpdateDialog: true,
+        updateError: errorMessage,
         isDownloadingUpdate: false,
         downloadProgress: 0,
       })

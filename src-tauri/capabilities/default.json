@@ -29,6 +29,8 @@
     "fs:allow-mkdir",
     "fs:allow-appdata-read-recursive",
     "fs:allow-appdata-write-recursive",
+    "process:default",
+    "process:allow-restart",
     "updater:default"
   ]
 }
