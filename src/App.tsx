@@ -13,6 +13,7 @@ function App() {
   const scheduleNextCheck = useScheduleNextCheck()
 
   useEffect(() => {
+    // Initialize app on launch
     // Register all coaching tools on app launch
     registerAllTools()
 
